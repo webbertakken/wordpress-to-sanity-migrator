@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs'
-import path from 'path'
+import * as path from 'path'
 import { MigrationFileError } from './error-handling'
 
 export const MIGRATION_FILE_PATH = path.join(process.cwd(), 'input', 'sanity-migration.json')

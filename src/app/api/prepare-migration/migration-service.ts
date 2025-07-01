@@ -30,7 +30,7 @@ export async function runMigrationPreparation(
     onProgress?.({
       step: 'starting',
       message: 'Starting migration preparation...',
-      progress: 5
+      progress: 5,
     })
 
     // Run the migration preparation - it will handle all progress updates
@@ -39,20 +39,20 @@ export async function runMigrationPreparation(
     onProgress?.({
       step: 'finalizing',
       message: 'Finalizing migration results...',
-      progress: 98
+      progress: 98,
     })
 
     // Read and parse the output file
     const { data, rawContent } = await readMigrationFile()
-    const content = data as { transformed: { contentType: 'post' | 'page' } }[]
+    const content = data as { transformed: { _type: 'post' | 'page' } }[]
 
-    const posts = content.filter(item => item.transformed.contentType === 'post')
-    const pages = content.filter(item => item.transformed.contentType === 'page')
+    const posts = content.filter((item) => item.transformed._type === 'post')
+    const pages = content.filter((item) => item.transformed._type === 'page')
 
     onProgress?.({
       step: 'completed',
       message: `Migration completed: ${posts.length} posts, ${pages.length} pages`,
-      progress: 100
+      progress: 100,
     })
 
     return {

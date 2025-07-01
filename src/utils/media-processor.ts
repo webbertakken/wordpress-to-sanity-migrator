@@ -1,7 +1,7 @@
 import { parse } from 'node-html-parser'
-import fs from 'fs'
-import path from 'path'
-import { MediaReference } from '@/types/migration'
+import * as fs from 'fs'
+import * as path from 'path'
+import type { MediaReference } from '../types/migration'
 
 export interface MediaStats {
   totalImages: number
@@ -28,7 +28,7 @@ export function extractMediaFromContent(content: string): MediaReference[] {
         url: src,
         localPath: '',
         type: 'image',
-        found: false
+        found: false,
       })
     }
   })
@@ -41,7 +41,7 @@ export function extractMediaFromContent(content: string): MediaReference[] {
         url: src,
         localPath: '',
         type: 'audio',
-        found: false
+        found: false,
       })
     }
   })
@@ -54,7 +54,7 @@ export function extractMediaFromContent(content: string): MediaReference[] {
         url: src,
         localPath: '',
         type: 'audio',
-        found: false
+        found: false,
       })
     }
   })
@@ -67,7 +67,7 @@ export function extractMediaFromContent(content: string): MediaReference[] {
         url: src,
         localPath: '',
         type: 'video',
-        found: false
+        found: false,
       })
     }
   })
@@ -80,7 +80,7 @@ export function extractMediaFromContent(content: string): MediaReference[] {
         url: src,
         localPath: '',
         type: 'video',
-        found: false
+        found: false,
       })
     }
   })
@@ -97,7 +97,7 @@ export function findLocalPath(url: string): string | null {
     const urlObj = new URL(url)
     const pathname = urlObj.pathname
     const filename = path.basename(pathname)
-    
+
     // Search in uploads directory recursively
     const foundPath = searchFileRecursively(UPLOADS_PATH, filename)
     return foundPath
@@ -121,10 +121,10 @@ function searchFileRecursively(dir: string, filename: string): string | null {
     }
 
     const entries = fs.readdirSync(dir, { withFileTypes: true })
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name)
-      
+
       if (entry.isDirectory()) {
         const found = searchFileRecursively(fullPath, filename)
         if (found) return found
@@ -132,7 +132,7 @@ function searchFileRecursively(dir: string, filename: string): string | null {
         return fullPath
       }
     }
-    
+
     return null
   } catch {
     return null
@@ -143,12 +143,12 @@ function searchFileRecursively(dir: string, filename: string): string | null {
  * Map media URLs to local file paths
  */
 export function mapMediaToLocalPaths(mediaRefs: MediaReference[]): MediaReference[] {
-  return mediaRefs.map(ref => {
+  return mediaRefs.map((ref) => {
     const localPath = findLocalPath(ref.url)
     return {
       ...ref,
       localPath: localPath || '',
-      found: localPath !== null
+      found: localPath !== null,
     }
   })
 }
@@ -158,8 +158,8 @@ export function mapMediaToLocalPaths(mediaRefs: MediaReference[]): MediaReferenc
  */
 export function replaceMediaUrls(content: string, mediaRefs: MediaReference[]): string {
   let updatedContent = content
-  
-  mediaRefs.forEach(ref => {
+
+  mediaRefs.forEach((ref) => {
     if (ref.found && ref.localPath) {
       // Convert absolute path to relative path from project root
       const relativePath = path.relative(process.cwd(), ref.localPath)
@@ -167,7 +167,7 @@ export function replaceMediaUrls(content: string, mediaRefs: MediaReference[]): 
       updatedContent = updatedContent.replace(new RegExp(escapeRegExp(ref.url), 'g'), relativePath)
     }
   })
-  
+
   return updatedContent
 }
 
@@ -182,17 +182,17 @@ function escapeRegExp(string: string): string {
  * Generate media statistics
  */
 export function generateMediaStats(mediaRefs: MediaReference[]): MediaStats {
-  const images = mediaRefs.filter(ref => ref.type === 'image')
-  const audio = mediaRefs.filter(ref => ref.type === 'audio')
-  const video = mediaRefs.filter(ref => ref.type === 'video')
-  const found = mediaRefs.filter(ref => ref.found)
-  const missing = mediaRefs.filter(ref => !ref.found)
+  const images = mediaRefs.filter((ref) => ref.type === 'image')
+  const audio = mediaRefs.filter((ref) => ref.type === 'audio')
+  const video = mediaRefs.filter((ref) => ref.type === 'video')
+  const found = mediaRefs.filter((ref) => ref.found)
+  const missing = mediaRefs.filter((ref) => !ref.found)
 
   return {
     totalImages: images.length,
     totalAudio: audio.length,
     totalVideo: video.length,
     totalFound: found.length,
-    totalMissing: missing.length
+    totalMissing: missing.length,
   }
 }

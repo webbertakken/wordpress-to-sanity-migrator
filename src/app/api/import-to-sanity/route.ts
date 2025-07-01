@@ -18,7 +18,7 @@ interface ImportProgress {
   step?: string
   current?: number
   total?: number
-  details?: any
+  details?: unknown
 }
 
 async function uploadMedia(
@@ -209,9 +209,9 @@ export async function POST(request: NextRequest) {
           // Process media files (upload in production, simulate in test)
           const media = record.media || record.transformed?.media
           if (media && media.length > 0) {
-            send({ 
-              type: 'info', 
-              message: `${testRun ? 'Simulating upload of' : 'Uploading'} ${media.length} media files...` 
+            send({
+              type: 'info',
+              message: `${testRun ? 'Simulating upload of' : 'Uploading'} ${media.length} media files...`,
             })
 
             for (const mediaRef of media) {

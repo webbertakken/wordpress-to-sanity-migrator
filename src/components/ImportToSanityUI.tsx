@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import type { MigrationRecord, MediaReference } from '../types/migration'
 
 interface ImportProgress {
   type: 'progress' | 'success' | 'error' | 'info'
@@ -8,7 +9,7 @@ interface ImportProgress {
   step?: string
   current?: number
   total?: number
-  details?: any
+  details?: unknown
 }
 
 interface PostOption {
@@ -36,27 +37,27 @@ export const ImportToSanityUI: React.FC = () => {
     try {
       setLoadingPosts(true)
       setLoadError(null)
-      
+
       const response = await fetch('/api/get-migration-data')
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-      
+
       const result = await response.json()
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to load migration data')
       }
-      
+
       if (!result.data || !Array.isArray(result.data)) {
         throw new Error('Migration data is not an array')
       }
 
-      const migrationData = result.data as any[]
+      const migrationData = result.data as MigrationRecord[]
       console.log(`Loaded ${migrationData.length} migration records`)
       console.log('First record structure:', migrationData[0])
-      
+
       // Debug: Check what each record looks like
       migrationData.slice(0, 3).forEach((record, index) => {
         console.log(`Record ${index}:`, {
@@ -66,27 +67,31 @@ export const ImportToSanityUI: React.FC = () => {
           hasTransformed: !!record.transformed,
           title: record.transformed?.title,
           hasOriginal: !!record.original,
-          originalId: record.original?.ID
+          originalId: record.original?.ID,
         })
       })
-      
+
       const postsWithMedia = migrationData
-        .filter((record: any) => {
+        .filter((record: MigrationRecord) => {
           // Try both locations for media property
-          const media = record.media || record.transformed?.media
+          const media =
+            (record as MigrationRecord & { media?: MediaReference[] }).media ||
+            record.transformed?.media
           const hasMedia = media && Array.isArray(media) && media.length > 0
           if (!hasMedia) {
             console.log('Filtered out record:', record.transformed?.title, 'media:', media)
           }
           return hasMedia
         })
-        .map((record: any) => {
-          const media = record.media || record.transformed?.media
+        .map((record: MigrationRecord) => {
+          const media: MediaReference[] =
+            (record as MigrationRecord & { media?: MediaReference[] }).media ||
+            record.transformed?.media
           return {
             id: record.original.ID,
             title: record.transformed.title,
             mediaCount: media.length,
-            mediaTypes: [...new Set(media.map((m: any) => m.type))],
+            mediaTypes: [...new Set(media.map((m: MediaReference) => m.type))],
           }
         })
         .slice(0, 20) // Increased to 20 for more options
@@ -135,7 +140,7 @@ export const ImportToSanityUI: React.FC = () => {
         },
         body: JSON.stringify({
           testRun: testMode,
-          selectedRecordId: testMode || importMode === 'single' ? (selectedPostId || null) : null,
+          selectedRecordId: testMode || importMode === 'single' ? selectedPostId || null : null,
         }),
       })
 
@@ -192,21 +197,6 @@ export const ImportToSanityUI: React.FC = () => {
     }
   }
 
-  const getMessageColor = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'text-green-600'
-      case 'error':
-        return 'text-red-600'
-      case 'progress':
-        return 'text-blue-600'
-      case 'info':
-        return 'text-gray-600'
-      default:
-        return 'text-gray-500'
-    }
-  }
-
   const selectedPost = availablePosts.find((post) => post.id.toString() === selectedPostId)
 
   return (
@@ -228,7 +218,7 @@ export const ImportToSanityUI: React.FC = () => {
               className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
             />
             <label htmlFor="testMode" className="text-sm font-medium text-gray-300">
-              Test Run (Preview only - won't create actual documents)
+              Test Run (Preview only - won&apos;t create actual documents)
             </label>
           </div>
 
@@ -274,12 +264,11 @@ export const ImportToSanityUI: React.FC = () => {
           {/* Post Selection */}
           <div>
             <label htmlFor="postSelect" className="block text-sm font-medium text-gray-300 mb-2">
-              {testMode 
-                ? "Select Post to Test:" 
-                : importMode === 'single' 
-                  ? "Select Post to Import:"
-                  : "Post Selection (optional - for reference only):"
-              }
+              {testMode
+                ? 'Select Post to Test:'
+                : importMode === 'single'
+                  ? 'Select Post to Import:'
+                  : 'Post Selection (optional - for reference only):'}
             </label>
             <select
               id="postSelect"
@@ -287,18 +276,21 @@ export const ImportToSanityUI: React.FC = () => {
               onChange={(e) => setSelectedPostId(e.target.value)}
               disabled={loadingPosts || (!testMode && importMode === 'all')}
               className={`w-full px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                loadingPosts || (!testMode && importMode === 'all') ? 'bg-gray-600 cursor-not-allowed opacity-50' : ''
+                loadingPosts || (!testMode && importMode === 'all')
+                  ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                  : ''
               }`}
             >
               <option value="">
-                {loadingPosts ? "Loading posts..." :
-                 loadError ? "Error loading posts" :
-                 testMode 
-                  ? "Auto-select (finds post with mixed media)" 
-                  : importMode === 'single'
-                    ? "Choose a specific post to import"
-                    : "All posts will be imported"
-                }
+                {loadingPosts
+                  ? 'Loading posts...'
+                  : loadError
+                    ? 'Error loading posts'
+                    : testMode
+                      ? 'Auto-select (finds post with mixed media)'
+                      : importMode === 'single'
+                        ? 'Choose a specific post to import'
+                        : 'All posts will be imported'}
               </option>
               {availablePosts.map((post) => (
                 <option key={post.id} value={post.id}>
@@ -306,7 +298,7 @@ export const ImportToSanityUI: React.FC = () => {
                 </option>
               ))}
             </select>
-            
+
             {/* Loading/Error feedback */}
             {loadingPosts && (
               <p className="text-sm text-gray-400 mt-1">Loading available posts...</p>
@@ -316,7 +308,7 @@ export const ImportToSanityUI: React.FC = () => {
                 <p className="text-sm text-red-400">
                   <strong>Error:</strong> {loadError}
                 </p>
-                <button 
+                <button
                   onClick={loadAvailablePosts}
                   className="text-sm text-red-300 underline mt-1 hover:text-red-200"
                 >
@@ -338,19 +330,21 @@ export const ImportToSanityUI: React.FC = () => {
               {testMode ? (
                 selectedPost ? (
                   <>
-                    {selectedPost.title} ({selectedPost.mediaCount} media files: {selectedPost.mediaTypes.join(', ')})
+                    {selectedPost.title} ({selectedPost.mediaCount} media files:{' '}
+                    {selectedPost.mediaTypes.join(', ')})
                   </>
                 ) : (
-                  "1 auto-selected post with mixed media"
+                  '1 auto-selected post with mixed media'
                 )
               ) : importMode === 'all' ? (
-                "ALL posts in migration data"
+                'ALL posts in migration data'
               ) : selectedPost ? (
                 <>
-                  {selectedPost.title} ({selectedPost.mediaCount} media files: {selectedPost.mediaTypes.join(', ')})
+                  {selectedPost.title} ({selectedPost.mediaCount} media files:{' '}
+                  {selectedPost.mediaTypes.join(', ')})
                 </>
               ) : (
-                "Please select a post to import"
+                'Please select a post to import'
               )}
             </p>
           </div>
@@ -363,7 +357,7 @@ export const ImportToSanityUI: React.FC = () => {
         <ul className="text-sm text-yellow-200 space-y-1">
           <li>• Set NEXT_PUBLIC_SANITY_PROJECT_ID in your environment</li>
           <li>• Set SANITY_API_WRITE_TOKEN with write permissions</li>
-          <li>• Ensure your Sanity project has a 'post' schema</li>
+          <li>• Ensure your Sanity project has a &apos;post&apos; schema</li>
         </ul>
       </div>
 

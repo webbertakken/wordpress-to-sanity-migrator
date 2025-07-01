@@ -1,33 +1,30 @@
 'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
 
 const VerifyMigrationPage = () => {
-  const [postCount, setPostCount] = useState<number | null>(null);
-  const [first20Lines, setFirst20Lines] = useState<string | null>(null);
+  const [postCount, setPostCount] = useState<number | null>(null)
+  const [first20Lines, setFirst20Lines] = useState<string | null>(null)
 
   const handlePrepareMigration = async () => {
     try {
-      const response = await fetch('/api/prepare-migration', { method: 'POST' });
-      const data = await response.json();
+      const response = await fetch('/api/prepare-migration', { method: 'POST' })
+      const data = await response.json()
       if (data.success) {
-        setPostCount(data.postCount);
-        setFirst20Lines(data.first20Lines);
+        setPostCount(data.postCount)
+        setFirst20Lines(data.first20Lines)
       } else {
-        alert(`Error: ${data.error}`);
+        alert(`Error: ${data.error}`)
       }
     } catch (error) {
-      alert(`Error: ${(error as Error).message}`);
+      alert(`Error: ${(error as Error).message}`)
     }
-  };
+  }
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Verify Migration</h1>
-      <button
-        onClick={handlePrepareMigration}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-      >
+      <button onClick={handlePrepareMigration} className="bg-blue-500 text-white px-4 py-2 rounded">
         Prepare Migration
       </button>
       {postCount !== null && (
@@ -42,7 +39,7 @@ const VerifyMigrationPage = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default VerifyMigrationPage;
+export default VerifyMigrationPage

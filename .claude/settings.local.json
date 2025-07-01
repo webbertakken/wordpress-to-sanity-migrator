@@ -9,7 +9,9 @@
       "Bash(rm:*)",
       "Bash(git add:*)",
       "Bash(curl:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

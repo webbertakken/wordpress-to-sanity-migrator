@@ -1,4 +1,4 @@
-import type { Post, Page, BlockContent, Slug } from '../../input/sanity.types'
+import type { Post, Page } from '../../input/sanity.types'
 
 export interface MediaReference {
   url: string
@@ -31,12 +31,60 @@ export interface SanityImage {
   alt?: string
 }
 
-export interface SanityPostContent extends Omit<Post, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev'> {
+// Extended BlockContent that includes image blocks
+export type ExtendedBlockContent = Array<
+  | {
+      children?: Array<{
+        marks?: Array<string>
+        text?: string
+        _type: 'span'
+        _key: string
+      }>
+      style?: 'normal' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote'
+      listItem?: 'bullet' | 'number'
+      markDefs?: Array<{
+        linkType?: 'href' | 'page' | 'post'
+        href?: string
+        page?: {
+          _ref: string
+          _type: 'reference'
+          _weak?: boolean
+        }
+        post?: {
+          _ref: string
+          _type: 'reference'
+          _weak?: boolean
+        }
+        openInNewTab?: boolean
+        _type: 'link'
+        _key: string
+      }>
+      level?: number
+      _type: 'block'
+      _key: string
+    }
+  | {
+      _type: 'image'
+      _key: string
+      asset?: {
+        _ref: string
+        _type: 'reference'
+      }
+      alt?: string
+      url?: string
+      localPath?: string
+    }
+>
+
+export interface SanityPostContent
+  extends Omit<Post, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev' | 'content'> {
   _type: 'post'
+  content?: ExtendedBlockContent
   media: MediaReference[]
 }
 
-export interface SanityPageContent extends Omit<Page, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev'> {
+export interface SanityPageContent
+  extends Omit<Page, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev'> {
   _type: 'page'
   media: MediaReference[]
 }

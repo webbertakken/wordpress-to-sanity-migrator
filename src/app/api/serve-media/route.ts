@@ -8,10 +8,7 @@ export async function GET(request: NextRequest) {
     const filePath = searchParams.get('path')
 
     if (!filePath) {
-      return NextResponse.json(
-        { error: 'Missing file path parameter' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing file path parameter' }, { status: 400 })
     }
 
     console.log(`Media request for: ${filePath}`)
@@ -25,17 +22,17 @@ export async function GET(request: NextRequest) {
       // If it's relative, resolve it from the project root
       absolutePath = path.join(process.cwd(), filePath)
     }
-    
+
     // Normalize the path to handle Windows backslashes
     absolutePath = path.normalize(absolutePath)
-    
+
     // Ensure the path is within the allowed directories
     const inputDir = path.join(process.cwd(), 'input')
     if (!absolutePath.startsWith(inputDir)) {
       console.error(`Access denied: ${absolutePath} is outside ${inputDir}`)
       return NextResponse.json(
         { error: 'Access denied: Path outside allowed directory' },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
@@ -44,17 +41,17 @@ export async function GET(request: NextRequest) {
       console.error(`File not found: ${absolutePath} (requested path: ${filePath})`)
       return NextResponse.json(
         { error: 'File not found', absolutePath, requestedPath: filePath },
-        { status: 404 }
+        { status: 404 },
       )
     }
 
     // Read the file
     const fileBuffer = fs.readFileSync(absolutePath)
-    
+
     // Determine content type based on file extension
     const ext = path.extname(absolutePath).toLowerCase()
     let contentType = 'application/octet-stream'
-    
+
     switch (ext) {
       case '.jpg':
       case '.jpeg':
@@ -98,9 +95,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error serving media:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
