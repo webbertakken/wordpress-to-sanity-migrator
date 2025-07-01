@@ -101,3 +101,7 @@ export interface MigrationStep {
   description: string
   link?: string
 }
+
+export interface MigrationOptions {
+  parsePagesAsPosts?: boolean
+}

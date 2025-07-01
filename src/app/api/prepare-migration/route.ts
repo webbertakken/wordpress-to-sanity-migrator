@@ -1,6 +1,18 @@
 import { runMigrationPreparation } from './migration-service'
+import type { MigrationOptions } from '../../../types/migration'
 
-export async function POST() {
+export async function POST(request: Request) {
+  // Parse request body for options
+  let options: MigrationOptions = {}
+  try {
+    const body = await request.text()
+    if (body) {
+      options = JSON.parse(body)
+    }
+  } catch (error) {
+    console.warn('Failed to parse request body, using default options:', error)
+  }
+
   // Create streaming response
   const stream = new ReadableStream({
     async start(controller) {
@@ -12,7 +24,7 @@ export async function POST() {
           encoder.encode(
             `data: ${JSON.stringify({
               type: 'status',
-              message: 'Starting migration preparation...',
+              message: `Starting migration preparation${options.parsePagesAsPosts ? ' (pages as posts)' : ''}...`,
             })}\n\n`,
           ),
         )
@@ -26,7 +38,7 @@ export async function POST() {
           })}\n\n`
           console.log('Sending progress update:', update.message)
           controller.enqueue(encoder.encode(message))
-        })
+        }, options)
 
         // Send final result
         controller.enqueue(

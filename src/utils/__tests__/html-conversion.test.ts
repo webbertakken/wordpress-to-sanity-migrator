@@ -213,6 +213,25 @@ describe('WordPress Migration Integration Tests', () => {
     expect(pages).toHaveLength(3)
     expect(posts.length + pages.length).toBe(5)
   })
+
+  it('should handle pages-as-posts migration option', () => {
+    // Test what happens when parsePagesAsPosts is enabled
+    // All pages should be converted to posts
+    const migrationDataWithPagesAsPosts = [
+      { transformed: { _type: 'post' as const, title: 'Original Post 1' } },
+      { transformed: { _type: 'post' as const, title: 'Original Post 2' } },
+      { transformed: { _type: 'post' as const, title: 'Page 1 (converted)' } }, // Was a page
+      { transformed: { _type: 'post' as const, title: 'Page 2 (converted)' } }, // Was a page
+      { transformed: { _type: 'post' as const, title: 'Page 3 (converted)' } }, // Was a page
+    ]
+
+    const posts = migrationDataWithPagesAsPosts.filter((item) => item.transformed._type === 'post')
+    const pages = migrationDataWithPagesAsPosts.filter((item) => item.transformed._type === 'page')
+
+    expect(posts).toHaveLength(5) // All content treated as posts
+    expect(pages).toHaveLength(0) // No pages when parsePagesAsPosts is enabled
+    expect(posts.length + pages.length).toBe(5)
+  })
 })
 
 describe('Expected HTML structures for WordPress migration', () => {

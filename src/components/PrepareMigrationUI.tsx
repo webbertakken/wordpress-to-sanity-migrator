@@ -25,6 +25,7 @@ export const PrepareMigrationUI: React.FC = () => {
   const [progressUpdates, setProgressUpdates] = useState<ProgressUpdate[]>([])
   const [currentProgress, setCurrentProgress] = useState(0)
   const [missingMedia, setMissingMedia] = useState<MissingMediaFile[]>([])
+  const [parsePagesAsPosts, setParsePagesAsPosts] = useState(false)
   const logContainerRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new progress updates arrive
@@ -46,7 +47,15 @@ export const PrepareMigrationUI: React.FC = () => {
     setMissingMedia([])
 
     try {
-      const response = await fetch('/api/prepare-migration', { method: 'POST' })
+      const response = await fetch('/api/prepare-migration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          parsePagesAsPosts,
+        }),
+      })
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -117,11 +126,34 @@ export const PrepareMigrationUI: React.FC = () => {
   return (
     <div className="p-8">
       <h2 className="text-2xl font-bold mb-4">Prepare Migration</h2>
-      <p className="mb-4">Run the migration preparation script and generate the migration data.</p>
+      <p className="mb-6">Run the migration preparation script and generate the migration data.</p>
+      
+      {/* Migration Options */}
+      <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-100 mb-3">Migration Options</h3>
+        <div className="flex items-center space-x-3">
+          <input
+            type="checkbox"
+            id="parsePagesAsPosts"
+            checked={parsePagesAsPosts}
+            onChange={(e) => setParsePagesAsPosts(e.target.checked)}
+            disabled={loading}
+            className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <label htmlFor="parsePagesAsPosts" className="text-sm font-medium text-gray-300">
+            Parse pages as posts
+          </label>
+        </div>
+        <div className="mt-2 text-xs text-gray-400">
+          When enabled, WordPress pages will be converted to Sanity posts instead of pages. 
+          This is useful if you want all content to be treated as blog posts.
+        </div>
+      </div>
+
       <button
         onClick={runPrepareMigration}
         disabled={loading}
-        className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition mb-4"
+        className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Running...' : 'Run Prepare Migration'}
       </button>

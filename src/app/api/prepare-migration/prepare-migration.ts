@@ -10,6 +10,7 @@ import type {
   SanityPageContent,
   MediaReference,
   ExtendedBlockContent,
+  MigrationOptions,
 } from '../../../types/migration'
 import {
   extractMediaFromContent,
@@ -69,6 +70,7 @@ function buildWordPressPageHierarchy(
 export async function prepareMigration(
   dryRun: boolean = false,
   onProgress?: (update: { step: string; message: string; progress?: number }) => void,
+  options?: MigrationOptions,
 ): Promise<{
   migrationRecords: MigrationRecord[]
   missingMedia: { url: string; foundIn: string; type: string }[]
@@ -128,9 +130,10 @@ export async function prepareMigration(
     for (let i = 0; i < typedContent.length; i++) {
       const item = typedContent[i]
       const progressPercent = 30 + Math.floor((i / typedContent.length) * 40)
+      const targetType = (options?.parsePagesAsPosts && item.post_type === 'page') ? 'page (as post)' : item.post_type
       onProgress?.({
         step: 'processing-item',
-        message: `Processing ${item.post_type}: ${item.post_title}`,
+        message: `Processing ${targetType}: ${item.post_title}`,
         progress: progressPercent,
       })
 
@@ -142,9 +145,11 @@ export async function prepareMigration(
       let mappedMediaRefs: MediaReference[] = []
 
       // Build Sanity content object based on type
+      // If parsePagesAsPosts is enabled, treat all content as posts
       let sanityContent: SanityContent
+      const shouldTreatAsPost = item.post_type === 'post' || (options?.parsePagesAsPosts && item.post_type === 'page')
 
-      if (item.post_type === 'post') {
+      if (shouldTreatAsPost) {
         // Convert HTML to BlockContent and extract media
         processedContent = await htmlToBlockContent(item.post_content)
         mappedMediaRefs = processedContent.media
@@ -168,7 +173,7 @@ export async function prepareMigration(
         }
         sanityContent = postContent
       } else {
-        // For pages, we still extract media but don't convert content
+        // For pages (when not treating as posts), we still extract media but don't convert content
         const mediaRefs = extractMediaFromContent(item.post_content)
         mappedMediaRefs = mapMediaToLocalPaths(mediaRefs)
 

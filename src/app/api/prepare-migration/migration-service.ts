@@ -1,6 +1,7 @@
 import { prepareMigration } from './prepare-migration'
 import { readMigrationFile, getMigrationFilePreview, MIGRATION_FILE_PATH } from './file-operations'
 import { handleMigrationError } from './error-handling'
+import type { MigrationOptions } from '../../../types/migration'
 
 export interface MigrationResult {
   success: boolean
@@ -25,6 +26,7 @@ export interface ProgressUpdate {
 
 export async function runMigrationPreparation(
   onProgress?: (update: ProgressUpdate) => void,
+  options?: MigrationOptions,
 ): Promise<MigrationResult> {
   try {
     onProgress?.({
@@ -34,7 +36,7 @@ export async function runMigrationPreparation(
     })
 
     // Run the migration preparation - it will handle all progress updates
-    const migrationResult = await prepareMigration(false, onProgress)
+    const migrationResult = await prepareMigration(false, onProgress, options)
 
     onProgress?.({
       step: 'finalizing',
