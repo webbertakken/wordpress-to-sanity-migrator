@@ -2,8 +2,9 @@ import mysql2 from 'mysql2/promise'
 import fs from 'fs'
 import path from 'path'
 import { RowDataPacket } from 'mysql2'
-import { WordPressPost, SanityContent, MigrationRecord } from '@/types/migration'
+import { WordPressPost, SanityContent, MigrationRecord, SanityPostContent, SanityPageContent } from '@/types/migration'
 import { extractMediaFromContent, mapMediaToLocalPaths, replaceMediaUrls, generateMediaStats } from '@/utils/media-processor'
+import { htmlToBlockContent } from '@/utils/html-to-portable-text'
 
 // Load environment variables if needed
 // require('dotenv').config();
@@ -120,17 +121,42 @@ export async function prepareMigration(
         })
       }
 
-      // Build Sanity content object
-      const sanityContent: SanityContent = {
-        title: item.post_title,
-        slug: item.post_name,
-        publishedAt: item.post_date,
-        body: updatedContent,
-        excerpt: item.post_excerpt,
-        media: mappedMediaRefs,
-        contentType: item.post_type,
-        parentId: item.post_parent > 0 ? item.post_parent : undefined,
-        menuOrder: item.post_type === 'page' ? item.menu_order : undefined,
+      // Build Sanity content object based on type
+      let sanityContent: SanityContent
+      
+      if (item.post_type === 'post') {
+        const postContent: SanityPostContent = {
+          _type: 'post',
+          title: item.post_title,
+          slug: {
+            _type: 'slug',
+            current: item.post_name,
+            source: 'title'
+          },
+          content: await htmlToBlockContent(updatedContent),
+          excerpt: item.post_excerpt || undefined,
+          coverImage: {
+            _type: 'image',
+            alt: `Cover image for ${item.post_title}`
+          },
+          date: item.post_date,
+          media: mappedMediaRefs
+        }
+        sanityContent = postContent
+      } else {
+        const pageContent: SanityPageContent = {
+          _type: 'page',
+          name: item.post_title,
+          slug: {
+            _type: 'slug',
+            current: item.post_name,
+            source: 'name'
+          },
+          heading: item.post_title,
+          subheading: item.post_excerpt || undefined,
+          media: mappedMediaRefs
+        }
+        sanityContent = pageContent
       }
 
       migrationRecords.push({

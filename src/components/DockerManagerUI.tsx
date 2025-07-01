@@ -34,6 +34,22 @@ export const DockerManagerUI: React.FC = () => {
       })
 
       if (!response.ok) {
+        // Try to parse error response body
+        try {
+          const errorData = await response.json()
+          if (errorData.error && errorData.details) {
+            // This is a structured error from our API
+            setError(JSON.stringify({
+              message: errorData.error,
+              details: errorData.details
+            }, null, 2))
+            setLoading(false)
+            return
+          }
+        } catch {
+          // Failed to parse as JSON, fall through to generic error
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
@@ -81,7 +97,18 @@ export const DockerManagerUI: React.FC = () => {
                   setResult(data.result.message || null)
                   // Final result - ensure all steps are updated (no need to add more)
                 } else if (data.type === 'error') {
-                  throw new Error(JSON.stringify(data.error))
+                  // Handle streaming error - extract the error details
+                  const errorData = data.error
+                  if (errorData && typeof errorData === 'object') {
+                    setError(JSON.stringify({
+                      message: errorData.error || 'An error occurred',
+                      details: errorData.details || {}
+                    }))
+                    // Don't throw, just return to stop processing
+                    return
+                  } else {
+                    throw new Error(JSON.stringify(data.error))
+                  }
                 }
               } catch (parseError) {
                 console.warn('Failed to parse SSE data:', line, parseError)
@@ -244,18 +271,23 @@ export const DockerManagerUI: React.FC = () => {
                   )
                   return (
                     <>
-                      <p className="text-red-200">{errorData.message}</p>
+                      <p className="text-red-200 text-lg">{errorData.message}</p>
                       {details.guidance && (
                         <div className="mt-4">
-                          <h3 className="text-lg font-semibold text-red-300 mb-2">
-                            Troubleshooting Steps:
-                          </h3>
-                          <div className="bg-gray-900/50 p-4 rounded text-sm text-gray-300">
-                            {details.guidance.split('\n').map((line: string, index: number) => (
-                              <p key={index} className="mb-2">
-                                {line}
-                              </p>
-                            ))}
+                          <div className="bg-yellow-900/50 border border-yellow-700 rounded p-4">
+                            <h3 className="text-lg font-semibold text-yellow-300 mb-2 flex items-center">
+                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              What to do:
+                            </h3>
+                            <div className="text-yellow-100">
+                              {details.guidance.split('\n').map((line: string, index: number) => (
+                                <p key={index} className="mb-2">
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -266,12 +298,12 @@ export const DockerManagerUI: React.FC = () => {
                           </h3>
                           <div className="bg-gray-900/50 p-4 rounded text-sm text-gray-300">
                             {details.stack && details.stack.trim() && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Error Stack:</h4>
-                                <div className="whitespace-pre-wrap">
-                                  {details.stack.split('\n').slice(0, 3).join('\n')}
+                              <details className="mb-4">
+                                <summary className="font-semibold mb-2 cursor-pointer">Error Stack</summary>
+                                <div className="whitespace-pre-wrap mt-2 text-xs">
+                                  {details.stack}
                                 </div>
-                              </div>
+                              </details>
                             )}
                             {details.cwd && details.cwd.trim() && (
                               <div className="mb-4">

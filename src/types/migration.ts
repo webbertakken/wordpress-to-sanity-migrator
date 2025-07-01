@@ -1,3 +1,5 @@
+import type { Post, Page, BlockContent, Slug } from '../../input/sanity.types'
+
 export interface MediaReference {
   url: string
   localPath: string
@@ -20,17 +22,26 @@ export interface WordPressPost {
   guid: string
 }
 
-export interface SanityContent {
-  title: string
-  slug: string
-  publishedAt: string
-  body: string
-  excerpt: string
-  media: MediaReference[]
-  contentType: 'post' | 'page'
-  parentId?: number
-  menuOrder?: number
+export interface SanityImage {
+  _type: 'image'
+  asset?: {
+    _ref: string
+    _type: 'reference'
+  }
+  alt?: string
 }
+
+export interface SanityPostContent extends Omit<Post, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev'> {
+  _type: 'post'
+  media: MediaReference[]
+}
+
+export interface SanityPageContent extends Omit<Page, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev'> {
+  _type: 'page'
+  media: MediaReference[]
+}
+
+export type SanityContent = SanityPostContent | SanityPageContent
 
 export interface MigrationRecord {
   original: WordPressPost

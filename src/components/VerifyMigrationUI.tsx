@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { MigrationRecord, MediaReference } from '../types/migration';
+import { MigrationRecord, MediaReference, SanityPostContent, SanityPageContent } from '../types/migration';
+import { blockContentToHtml, getTextFromBlockContent } from '../utils/block-content-to-html';
 
 // Function to process content and replace local paths with API URLs
 const processContentForPreview = (content: string, mediaRefs: MediaReference[]): string => {
@@ -160,16 +161,24 @@ export const VerifyMigrationUI: React.FC = () => {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(record => 
-        record.transformed.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.transformed.body.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.transformed.slug.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(record => {
+        const title = record.transformed._type === 'post' 
+          ? (record.transformed as SanityPostContent).title 
+          : (record.transformed as SanityPageContent).name;
+        const content = record.transformed._type === 'post' 
+          ? getTextFromBlockContent((record.transformed as SanityPostContent).content)
+          : (record.transformed as SanityPageContent).heading + ' ' + ((record.transformed as SanityPageContent).subheading || '');
+        const slug = record.transformed.slug.current;
+        
+        return title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          slug.toLowerCase().includes(searchTerm.toLowerCase());
+      });
     }
 
     // Apply content type filter
     if (contentTypeFilter !== 'all') {
-      filtered = filtered.filter(record => record.transformed.contentType === contentTypeFilter);
+      filtered = filtered.filter(record => record.transformed._type === contentTypeFilter);
     }
 
 
@@ -180,20 +189,32 @@ export const VerifyMigrationUI: React.FC = () => {
 
       switch (sortBy) {
         case 'title':
-          aValue = a.transformed.title.toLowerCase();
-          bValue = b.transformed.title.toLowerCase();
+          aValue = (a.transformed._type === 'post' 
+            ? (a.transformed as SanityPostContent).title 
+            : (a.transformed as SanityPageContent).name).toLowerCase();
+          bValue = (b.transformed._type === 'post' 
+            ? (b.transformed as SanityPostContent).title 
+            : (b.transformed as SanityPageContent).name).toLowerCase();
           break;
         case 'date':
-          aValue = new Date(a.transformed.publishedAt).getTime();
-          bValue = new Date(b.transformed.publishedAt).getTime();
+          aValue = new Date(a.transformed._type === 'post' 
+            ? (a.transformed as SanityPostContent).date || a.original.post_date
+            : a.original.post_date).getTime();
+          bValue = new Date(b.transformed._type === 'post' 
+            ? (b.transformed as SanityPostContent).date || b.original.post_date
+            : b.original.post_date).getTime();
           break;
         case 'type':
-          aValue = a.transformed.contentType;
-          bValue = b.transformed.contentType;
+          aValue = a.transformed._type;
+          bValue = b.transformed._type;
           break;
         default:
-          aValue = a.transformed.title.toLowerCase();
-          bValue = b.transformed.title.toLowerCase();
+          aValue = (a.transformed._type === 'post' 
+            ? (a.transformed as SanityPostContent).title 
+            : (a.transformed as SanityPageContent).name).toLowerCase();
+          bValue = (b.transformed._type === 'post' 
+            ? (b.transformed as SanityPostContent).title 
+            : (b.transformed as SanityPageContent).name).toLowerCase();
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -228,8 +249,8 @@ export const VerifyMigrationUI: React.FC = () => {
   }
 
   // Statistics calculations
-  const totalPosts = records.filter(r => r.transformed.contentType === 'post').length;
-  const totalPages = records.filter(r => r.transformed.contentType === 'page').length;
+  const totalPosts = records.filter(r => r.transformed._type === 'post').length;
+  const totalPages = records.filter(r => r.transformed._type === 'page').length;
   const totalMediaItems = records.reduce((sum, r) => sum + r.transformed.media.length, 0);
   const totalImages = records.reduce((sum, r) => sum + r.transformed.media.filter(m => m.type === 'image').length, 0);
   const totalAudio = records.reduce((sum, r) => sum + r.transformed.media.filter(m => m.type === 'audio').length, 0);
@@ -393,7 +414,7 @@ export const VerifyMigrationUI: React.FC = () => {
           {filteredRecords.map((record, index) => {
             const isDetailsOpen = openDetails[index] ?? false;
             const isDataOpen = openData[index] ?? false;
-            const contentType = record.transformed.contentType;
+            const contentType = record.transformed._type;
             const isPage = contentType === 'page';
             const bgColor = isPage ? 'bg-green-800' : 'bg-blue-800';
             const borderColor = isPage ? 'border-green-700' : 'border-blue-700';
@@ -419,7 +440,7 @@ export const VerifyMigrationUI: React.FC = () => {
                     {contentType.toUpperCase()}
                   </span>
                   <h2 className="text-xl font-semibold flex-1">
-                    {record.transformed.title}
+                    {record.transformed._type === 'post' ? (record.transformed as SanityPostContent).title : (record.transformed as SanityPageContent).name}
                   </h2>
                   <div className="flex items-center gap-4 text-sm text-gray-300">
                     {record.transformed.media.length > 0 && (
@@ -441,16 +462,19 @@ export const VerifyMigrationUI: React.FC = () => {
                         )}
                       </div>
                     )}
-                    <span>{new Date(record.transformed.publishedAt).toLocaleDateString()}</span>
+                    <span>{new Date(record.transformed._type === 'post' ? (record.transformed as SanityPostContent).date || '' : record.original.post_date).toLocaleDateString()}</span>
                   </div>
                 </div>
                 
                 {/* Quick Preview */}
                 <div className="mb-4 text-sm text-gray-300">
                   <div className="flex gap-4">
-                    <span><strong>Slug:</strong> {record.transformed.slug}</span>
-                    {record.transformed.excerpt && (
-                      <span><strong>Excerpt:</strong> {record.transformed.excerpt.substring(0, 100)}...</span>
+                    <span><strong>Slug:</strong> {record.transformed.slug.current}</span>
+                    {record.transformed._type === 'post' && (record.transformed as SanityPostContent).excerpt && (
+                      <span><strong>Excerpt:</strong> {(record.transformed as SanityPostContent).excerpt?.substring(0, 100)}...</span>
+                    )}
+                    {record.transformed._type === 'page' && (record.transformed as SanityPageContent).subheading && (
+                      <span><strong>Subheading:</strong> {(record.transformed as SanityPageContent).subheading?.substring(0, 100)}...</span>
                     )}
                   </div>
                 </div>
@@ -477,18 +501,22 @@ export const VerifyMigrationUI: React.FC = () => {
                       <div>
                         <span className="text-gray-400">Word Count:</span>
                         <span className="ml-2 font-semibold">
-                          {record.transformed.body.replace(/<[^>]*>/g, '').split(/\s+/).filter(word => word.length > 0).length}
+                          {(() => {
+                            const content = record.transformed._type === 'post' ? (record.transformed as SanityPostContent).content : undefined;
+                            const text = getTextFromBlockContent(content);
+                            return text.split(/\s+/).filter(word => word.length > 0).length;
+                          })()}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Character Count:</span>
-                        <span className="ml-2 font-semibold">{record.transformed.body.length}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">HTML Tags:</span>
+                        <span className="text-gray-400">Block Count:</span>
                         <span className="ml-2 font-semibold">
-                          {(record.transformed.body.match(/<[^>]*>/g) || []).length}
+                          {record.transformed._type === 'post' ? ((record.transformed as SanityPostContent).content?.length || 0) : 0}
                         </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Content Type:</span>
+                        <span className="ml-2 font-semibold">{record.transformed._type}</span>
                       </div>
                       <div>
                         <span className="text-gray-400">Images:</span>
@@ -552,10 +580,10 @@ export const VerifyMigrationUI: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">Transformed HTML</h3>
+                      <h3 className="text-lg font-semibold mb-2">Transformed BlockContent</h3>
                       <div className="bg-gray-950 text-gray-100 p-3 rounded max-h-96 overflow-y-auto">
                         <pre className="whitespace-pre-wrap break-words text-sm">
-                          {record.transformed.body}
+                          {JSON.stringify(record.transformed._type === 'post' ? (record.transformed as SanityPostContent).content : [], null, 2)}
                         </pre>
                       </div>
                     </div>
@@ -578,7 +606,10 @@ export const VerifyMigrationUI: React.FC = () => {
                         <div
                           className="prose prose-sm max-w-none preview-content"
                           dangerouslySetInnerHTML={{ 
-                            __html: processContentForPreview(record.transformed.body, record.transformed.media) 
+                            __html: processContentForPreview(
+                              blockContentToHtml(record.transformed._type === 'post' ? (record.transformed as SanityPostContent).content : undefined), 
+                              record.transformed.media
+                            ) 
                           }}
                         />
                       </div>
