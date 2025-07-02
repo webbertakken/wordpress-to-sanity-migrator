@@ -48,7 +48,11 @@ alwaysApply: true
 
 ## Testing
 
-- Follow the Arrange-Act-Assert pattern:
+- Write tests in a descriptive, behavior-focused manner:
+- Use `it('returns...'` instead of `test('it should return...'` and so on
+- Focus on behavior and outcomes rather than implementation details
+- Follow the Arrange-Act-Assert pattern
+- Keep types practical. For example implicit any is fine for tests.
 
 ## Ethics
 

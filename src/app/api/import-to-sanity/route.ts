@@ -112,6 +112,25 @@ function processMediaInContent(
           }
         }
       }
+    } else if (block._type === 'audio' && block.localPath) {
+      const assetId = mediaAssets.get(block.localPath)
+      if (assetId) {
+        return {
+          _type: 'audio',
+          _key: block._key,
+          audioFile: {
+            asset: {
+              _type: 'reference',
+              _ref: assetId
+            },
+            _type: 'file'
+          },
+          title: block.title,
+          description: block.description,
+          showControls: block.showControls !== false, // Default to true
+          autoplay: block.autoplay || false
+        }
+      }
     }
     return block
   })

@@ -7,5 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     reporters: ['verbose'],
+    testTimeout: 20000, // Increase timeout for tests with dynamic imports
+    hookTimeout: 20000,
   },
 })

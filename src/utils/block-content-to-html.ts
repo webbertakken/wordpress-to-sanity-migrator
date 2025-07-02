@@ -9,9 +9,9 @@ export function blockContentToHtml(blocks: ExtendedBlockContent | undefined): st
     .map((block) => {
       // Handle image blocks
       if (block._type === 'image') {
-        const imageBlock = block as Extract<ExtendedBlockContent[number], { _type: 'image' }>
+        const imageBlock = block as any // Type assertion to handle both migration and Sanity formats
         const src = imageBlock.localPath || imageBlock.url || ''
-        const alt = imageBlock.alt || ''
+        const alt = imageBlock.alt || imageBlock.caption || ''
 
         if (src) {
           // If it's a local path, convert to API URL for preview
@@ -20,6 +20,30 @@ export function blockContentToHtml(blocks: ExtendedBlockContent | undefined): st
             : src
 
           return `<figure><img src="${imageSrc}" alt="${alt}" style="max-width: 100%; height: auto;" /></figure>`
+        }
+        return ''
+      }
+
+      // Handle audio blocks
+      if (block._type === 'audio') {
+        const audioBlock = block as any // Type assertion to handle both migration and Sanity formats
+        const src = audioBlock.localPath || audioBlock.url || ''
+        const title = audioBlock.title || ''
+        
+        if (src) {
+          // If it's a local path, convert to API URL for preview
+          const audioSrc = src.startsWith('input/')
+            ? `/api/serve-media?path=${encodeURIComponent(src)}`
+            : src
+          
+          return `<figure class="audio-block">
+            <audio controls${audioBlock.autoplay ? ' autoplay' : ''}>
+              <source src="${audioSrc}" type="audio/wav">
+              <source src="${audioSrc}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>
+            ${title ? `<figcaption>${title}</figcaption>` : ''}
+          </figure>`
         }
         return ''
       }

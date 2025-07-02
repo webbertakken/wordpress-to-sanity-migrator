@@ -13,7 +13,9 @@
       "Bash(npx prettier:*)",
       "Bash(npx eslint:*)",
       "Bash(find:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(bun test:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": []
   }

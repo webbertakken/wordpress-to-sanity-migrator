@@ -31,22 +31,9 @@ export interface SanityImage {
   alt?: string
 }
 
-// Extended BlockContent that includes image blocks for migration purposes
-// The base BlockContent from Sanity doesn't include images, but we need them during migration
-export type ExtendedBlockContent = Array<
-  | BlockContent[number]  // All the standard block types from Sanity
-  | {
-      _type: 'image'
-      _key: string
-      asset?: {
-        _ref: string
-        _type: 'reference'
-      }
-      alt?: string
-      url?: string
-      localPath?: string
-    }
->
+// Extended BlockContent that matches Sanity's BlockContent type exactly
+// This includes all media types (image, audio, video) that are part of the Sanity schema
+export type ExtendedBlockContent = BlockContent
 
 // Types for migration that extend the actual Sanity schema types
 // We omit the system fields that are added by Sanity at creation time
