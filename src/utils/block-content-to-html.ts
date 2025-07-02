@@ -1,6 +1,6 @@
-import type { ExtendedBlockContent } from '../types/migration'
+import type { ExtendedBlockContent, MigrationBlockContent } from '../types/migration'
 
-export function blockContentToHtml(blocks: ExtendedBlockContent | undefined): string {
+export function blockContentToHtml(blocks: ExtendedBlockContent | MigrationBlockContent | undefined): string {
   if (!blocks || !Array.isArray(blocks)) {
     return ''
   }
@@ -9,7 +9,13 @@ export function blockContentToHtml(blocks: ExtendedBlockContent | undefined): st
     .map((block) => {
       // Handle image blocks
       if (block._type === 'image') {
-        const imageBlock = block as any // Type assertion to handle both migration and Sanity formats
+        // Type assertion to handle both migration and Sanity formats
+        const imageBlock = block as {
+          localPath?: string
+          url?: string
+          alt?: string
+          caption?: string
+        }
         const src = imageBlock.localPath || imageBlock.url || ''
         const alt = imageBlock.alt || imageBlock.caption || ''
 
@@ -26,7 +32,13 @@ export function blockContentToHtml(blocks: ExtendedBlockContent | undefined): st
 
       // Handle audio blocks
       if (block._type === 'audio') {
-        const audioBlock = block as any // Type assertion to handle both migration and Sanity formats
+        // Type assertion to handle both migration and Sanity formats
+        const audioBlock = block as {
+          localPath?: string
+          url?: string
+          title?: string
+          autoplay?: boolean
+        }
         const src = audioBlock.localPath || audioBlock.url || ''
         const title = audioBlock.title || ''
         
@@ -65,7 +77,7 @@ export function blockContentToHtml(blocks: ExtendedBlockContent | undefined): st
 
             // Apply marks (formatting)
             if (child.marks && child.marks.length > 0) {
-              child.marks.forEach((mark) => {
+              child.marks.forEach((mark: string) => {
                 // Check if it's a reference to a markDef
                 const markDef = block.markDefs?.find((def) => def._key === mark)
                 if (markDef && markDef._type === 'link') {

@@ -1,30 +1,17 @@
 // Lightweight HTML to Portable Text converter without JSDOM
 import { nanoid } from 'nanoid'
 import { extractMediaFromContent, mapMediaToLocalPaths } from './media-processor'
-import type { MediaReference, ExtendedBlockContent } from '../types/migration'
+import type { 
+  MediaReference, 
+  MigrationBlockContent,
+  MigrationImageBlock,
+  MigrationAudioBlock,
+  MigrationVideoBlock
+} from '../types/migration'
 
-interface BlockChild {
-  _type: 'span'
-  _key: string
-  text?: string
-  marks?: string[]
-}
+// BlockChild interface is part of MigrationTextBlock's children property
 
-interface Block {
-  _type: 'block'
-  _key: string
-  style?: 'normal' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote'
-  children?: BlockChild[]
-  markDefs?: Array<{
-    _key: string
-    _type: 'link'
-    href?: string
-    linkType?: 'href' | 'page' | 'post'
-    openInNewTab?: boolean
-  }>
-  listItem?: 'bullet' | 'number'
-  level?: number
-}
+// interface Block is defined in MigrationTextBlock
 
 // Strip HTML tags and decode entities
 function stripHtml(html: string): string {
@@ -40,8 +27,8 @@ function stripHtml(html: string): string {
 }
 
 // Extract audio blocks using regex
-function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>): ExtendedBlockContent {
-  const blocks: ExtendedBlockContent = []
+function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>): MigrationAudioBlock[] {
+  const blocks: MigrationAudioBlock[] = []
   
   // First try to match figure with audio (WordPress block pattern)
   const figureAudioPattern = /<figure[^>]*class="[^"]*wp-block-audio[^"]*"[^>]*>([\s\S]*?)<\/figure>/gi
@@ -68,7 +55,7 @@ function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>)
     if (srcMatch && srcMatch[1]) {
       const src = srcMatch[1]
       const mediaRef = mediaMap.get(src)
-      const audioBlock: any = {
+      const audioBlock: MigrationAudioBlock = {
         _type: 'audio',
         _key: nanoid(),
         // Store the URL and localPath temporarily for migration processing
@@ -100,7 +87,7 @@ function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>)
   while ((match = standaloneAudioPattern.exec(html)) !== null) {
     // Skip if this audio is inside a figure we already processed
     const beforeMatch = html.substring(0, match.index)
-    const afterMatch = html.substring(match.index + match[0].length)
+    // const afterMatch = html.substring(match.index + match[0].length) // Not needed
     
     // Check if we're inside a figure tag
     const openFigures = (beforeMatch.match(/<figure[^>]*>/g) || []).length
@@ -122,7 +109,7 @@ function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>)
     if (srcMatch && srcMatch[1]) {
       const src = srcMatch[1]
       const mediaRef = mediaMap.get(src)
-      blocks.push({
+      const audioBlock: MigrationAudioBlock = {
         _type: 'audio',
         _key: nanoid(),
         // Store the URL temporarily for migration processing
@@ -135,7 +122,8 @@ function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>)
         },
         showControls: hasControls,
         autoplay: hasAutoplay,
-      })
+      }
+      blocks.push(audioBlock)
     }
   }
   
@@ -143,8 +131,8 @@ function extractAudioBlocks(html: string, mediaMap: Map<string, MediaReference>)
 }
 
 // Extract video blocks using regex
-function extractVideoBlocks(html: string, mediaMap: Map<string, MediaReference>): ExtendedBlockContent {
-  const blocks: ExtendedBlockContent = []
+function extractVideoBlocks(html: string, mediaMap: Map<string, MediaReference>): MigrationVideoBlock[] {
+  const blocks: MigrationVideoBlock[] = []
   
   // First try to match figure with video (WordPress block pattern)
   const figureVideoPattern = /<figure[^>]*class="[^"]*wp-block-video[^"]*"[^>]*>([\s\S]*?)<\/figure>/gi
@@ -178,7 +166,7 @@ function extractVideoBlocks(html: string, mediaMap: Map<string, MediaReference>)
         videoType = 'vimeo'
       }
       
-      const videoBlock: any = {
+      const videoBlock: MigrationVideoBlock = {
         _type: 'video',
         _key: nanoid(),
         videoType,
@@ -213,12 +201,13 @@ function extractVideoBlocks(html: string, mediaMap: Map<string, MediaReference>)
           videoType = 'vimeo'
         }
         
-        blocks.push({
+        const videoBlock: MigrationVideoBlock = {
           _type: 'video',
           _key: nanoid(),
           videoType,
           url,
-        })
+        }
+        blocks.push(videoBlock)
       }
     } catch (e) {
       // If JSON parsing fails, skip this embed
@@ -243,12 +232,13 @@ function extractVideoBlocks(html: string, mediaMap: Map<string, MediaReference>)
           videoType = 'vimeo'
         }
         
-        blocks.push({
+        const videoBlock: MigrationVideoBlock = {
           _type: 'video',
           _key: nanoid(),
           videoType,
           url,
-        })
+        }
+        blocks.push(videoBlock)
       }
     }
   }
@@ -257,8 +247,8 @@ function extractVideoBlocks(html: string, mediaMap: Map<string, MediaReference>)
 }
 
 // Extract image blocks using regex
-function extractImageBlocks(html: string, mediaMap: Map<string, MediaReference>): ExtendedBlockContent {
-  const blocks: ExtendedBlockContent = []
+function extractImageBlocks(html: string, mediaMap: Map<string, MediaReference>): MigrationImageBlock[] {
+  const blocks: MigrationImageBlock[] = []
   
   // Pattern to match image blocks - handles attributes in any order
   const imagePattern = /<img[^>]*>/gi
@@ -277,79 +267,25 @@ function extractImageBlocks(html: string, mediaMap: Map<string, MediaReference>)
     
     if (src) {
       const mediaRef = mediaMap.get(src)
-      blocks.push({
+      const imageBlock: MigrationImageBlock = {
         _type: 'image',
         _key: nanoid(),
         alt,
         url: src,
         localPath: mediaRef?.localPath,
-      })
+      }
+      blocks.push(imageBlock)
     }
   }
   
   return blocks
 }
 
-// Extract text blocks using regex
-function extractTextBlocks(html: string): ExtendedBlockContent {
-  const blocks: ExtendedBlockContent = []
-  
-  // Remove audio and image elements first to avoid duplicate content
-  const cleanHtml = html
-    .replace(/<figure[^>]*class="[^"]*wp-block-audio[^"]*"[^>]*>[\s\S]*?<\/figure>/gi, '')
-    .replace(/<audio[^>]*>[\s\S]*?<\/audio>/gi, '')
-    .replace(/<img[^>]*>/gi, '')
-  
-  // Pattern to match paragraph tags
-  const paragraphPattern = /<p[^>]*>([\s\S]*?)<\/p>/gi
-  
-  let match
-  while ((match = paragraphPattern.exec(cleanHtml)) !== null) {
-    const text = stripHtml(match[1])
-    if (text) {
-      blocks.push({
-        _type: 'block',
-        _key: nanoid(),
-        style: 'normal',
-        children: [{
-          _type: 'span',
-          _key: nanoid(),
-          text,
-        }],
-        markDefs: [],
-      })
-    }
-  }
-  
-  // Also handle headings
-  const headingPattern = /<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi
-  const headingBlocks: ExtendedBlockContent = []
-  
-  while ((match = headingPattern.exec(cleanHtml)) !== null) {
-    const level = match[1] as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
-    const text = stripHtml(match[2])
-    if (text) {
-      headingBlocks.push({
-        _type: 'block',
-        _key: nanoid(),
-        style: level,
-        children: [{
-          _type: 'span',
-          _key: nanoid(),
-          text,
-        }],
-        markDefs: [],
-      })
-    }
-  }
-  
-  // Merge and sort blocks by their position in the original HTML
-  return [...blocks, ...headingBlocks]
-}
+// Removed unused extractTextBlocks function - text extraction is handled in htmlToBlockContent
 
 export async function htmlToBlockContent(
   html: string,
-): Promise<{ content: ExtendedBlockContent; media: MediaReference[] }> {
+): Promise<{ content: MigrationBlockContent; media: MediaReference[] }> {
   // First extract and map media references
   const mediaRefs = extractMediaFromContent(html)
   const mappedMedia = mapMediaToLocalPaths(mediaRefs)
@@ -360,7 +296,7 @@ export async function htmlToBlockContent(
     mediaMap.set(ref.url, ref)
   })
   
-  const blocks: ExtendedBlockContent = []
+  const blocks: MigrationBlockContent = []
 
   // Process HTML content maintaining order
   // Create patterns for different element types

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { blockContentToHtml, getTextFromBlockContent } from '../block-content-to-html'
-import type { ExtendedBlockContent } from '../../types/migration'
+import type { ExtendedBlockContent, MigrationBlockContent } from '../../types/migration'
+import { createTestImageBlock, createTestTextBlock } from './test-helpers'
 
 // Note: htmlToBlockContent tests are integration tests that require real
 // HTML parsing and media processing, so we focus on testing the output
@@ -9,7 +10,7 @@ import type { ExtendedBlockContent } from '../../types/migration'
 describe('HTML to BlockContent Integration', () => {
   describe('blockContentToHtml', () => {
     it('preserves empty paragraphs for spacing', () => {
-      const blocks: ExtendedBlockContent = [
+      const blocks: MigrationBlockContent = [
         {
           _type: 'block',
           _key: '1',
@@ -44,27 +45,24 @@ describe('HTML to BlockContent Integration', () => {
     })
 
     it('handles image blocks correctly', () => {
-      const blocks: ExtendedBlockContent = [
-        {
-          _type: 'block',
+      const blocks: MigrationBlockContent = [
+        createTestTextBlock({
           _key: '1',
           style: 'normal',
           children: [{ _type: 'span', _key: '1', text: 'Before image' }],
           markDefs: [],
-        },
-        {
-          _type: 'image',
+        }),
+        createTestImageBlock({
           _key: '2',
           alt: 'Test image',
           localPath: 'input/uploads/test.jpg',
-        },
-        {
-          _type: 'block',
+        }),
+        createTestTextBlock({
           _key: '3',
           style: 'normal',
           children: [{ _type: 'span', _key: '3', text: 'After image' }],
           markDefs: [],
-        },
+        }),
       ]
 
       const result = blockContentToHtml(blocks)
@@ -78,7 +76,7 @@ describe('HTML to BlockContent Integration', () => {
     })
 
     it('handles formatted text with marks', () => {
-      const blocks: ExtendedBlockContent = [
+      const blocks: MigrationBlockContent = [
         {
           _type: 'block',
           _key: '1',
@@ -100,7 +98,7 @@ describe('HTML to BlockContent Integration', () => {
 
   describe('getTextFromBlockContent', () => {
     it('extracts text from multiple blocks', () => {
-      const blocks: ExtendedBlockContent = [
+      const blocks: MigrationBlockContent = [
         {
           _type: 'block',
           _key: '1',
@@ -122,7 +120,7 @@ describe('HTML to BlockContent Integration', () => {
     })
 
     it('skips image blocks when extracting text', () => {
-      const blocks: ExtendedBlockContent = [
+      const blocks: MigrationBlockContent = [
         {
           _type: 'block',
           _key: '1',
@@ -130,11 +128,11 @@ describe('HTML to BlockContent Integration', () => {
           children: [{ _type: 'span', _key: '1', text: 'Before' }],
           markDefs: [],
         },
-        {
-          _type: 'image',
+        createTestImageBlock({
           _key: '2',
           alt: 'Test image',
-        },
+          url: 'http://example.com/test.jpg',
+        }),
         {
           _type: 'block',
           _key: '3',
@@ -149,7 +147,7 @@ describe('HTML to BlockContent Integration', () => {
     })
 
     it('handles empty and whitespace-only spans', () => {
-      const blocks: ExtendedBlockContent = [
+      const blocks: MigrationBlockContent = [
         {
           _type: 'block',
           _key: '1',
@@ -180,7 +178,7 @@ describe('HTML to BlockContent Integration', () => {
     })
 
     it('handles blocks without children', () => {
-      const blocks: ExtendedBlockContent = [
+      const blocks: MigrationBlockContent = [
         {
           _type: 'block',
           _key: '1',
@@ -272,28 +270,25 @@ describe('Expected HTML structures for WordPress migration', () => {
   })
 
   it('should handle mixed content with images', () => {
-    const blocks: ExtendedBlockContent = [
-      {
-        _type: 'block',
+    const blocks: MigrationBlockContent = [
+      createTestTextBlock({
         _key: '1',
         style: 'normal',
         children: [{ _type: 'span', _key: '1', text: 'Text before image.' }],
         markDefs: [],
-      },
-      {
-        _type: 'image',
+      }),
+      createTestImageBlock({
         _key: '2',
         alt: 'WordPress uploaded image',
         url: 'https://example.com/wp-content/uploads/2023/image.jpg',
         localPath: 'input/uploads/2023/12/image.jpg',
-      },
-      {
-        _type: 'block',
+      }),
+      createTestTextBlock({
         _key: '3',
         style: 'normal',
         children: [{ _type: 'span', _key: '3', text: 'Text after image.' }],
         markDefs: [],
-      },
+      }),
     ]
 
     const html = blockContentToHtml(blocks)

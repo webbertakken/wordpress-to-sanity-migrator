@@ -4,12 +4,7 @@ import * as path from 'path'
 import { RowDataPacket } from 'mysql2'
 import type {
   WordPressPost,
-  SanityContent,
   MigrationRecord,
-  SanityPostContent,
-  SanityPageContent,
-  MediaReference,
-  ExtendedBlockContent,
   MigrationOptions,
 } from '../../../types/migration'
 import { generateMediaStats } from '../../../utils/media-processor'
@@ -132,6 +127,16 @@ export async function prepareMigration(
         message: `Processing ${targetType}: ${item.post_title}`,
         progress: progressPercent,
       })
+
+      // Validate WordPress content before processing
+      if (!item.post_title || !item.post_name) {
+        onProgress?.({
+          step: 'validation-warning',
+          message: `Skipping invalid ${item.post_type} (ID: ${item.ID}): missing required fields`,
+          progress: progressPercent,
+        })
+        continue
+      }
 
       // Small delay to ensure streaming works properly
       await new Promise((resolve) => setTimeout(resolve, 10))

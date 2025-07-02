@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { htmlToBlockContent } from '../html-to-portable-text'
 import { blockContentToHtml } from '../block-content-to-html'
+import { createTestAudioBlock } from './test-helpers'
+// import type { TestBlockContent } from './test-types'
+import type { MigrationAudioBlock } from '../../types/migration'
 
 describe('Audio Block Conversion', () => {
   describe('WordPress audio block to Sanity audio block', () => {
@@ -24,9 +27,10 @@ describe('Audio Block Conversion', () => {
       expect(audioBlock).toBeDefined()
       
       if (audioBlock && audioBlock._type === 'audio') {
-        expect(audioBlock.url).toBe('http://bert.webbink.eu/wp-content/uploads/2023/03/08-Rolde-Jacobuskerk-Ab.wav')
-        expect(audioBlock.showControls).toBe(true)
-        expect(audioBlock.autoplay).toBe(false)
+        const migrationAudioBlock = audioBlock as MigrationAudioBlock
+        expect(migrationAudioBlock.url).toBe('http://bert.webbink.eu/wp-content/uploads/2023/03/08-Rolde-Jacobuskerk-Ab.wav')
+        expect(migrationAudioBlock.showControls).toBe(true)
+        expect(migrationAudioBlock.autoplay).toBe(false)
       }
 
       // Check media extraction
@@ -71,8 +75,9 @@ describe('Audio Block Conversion', () => {
       expect(audioBlock._type).toBe('audio')
       
       if (audioBlock._type === 'audio') {
-        expect(audioBlock.url).toBe('http://example.com/music.wav')
-        expect(audioBlock.showControls).toBe(true)
+        const migrationAudioBlock = audioBlock as MigrationAudioBlock
+        expect(migrationAudioBlock.url).toBe('http://example.com/music.wav')
+        expect(migrationAudioBlock.showControls).toBe(true)
         expect(audioBlock.autoplay).toBe(true)
       }
     })
@@ -80,14 +85,13 @@ describe('Audio Block Conversion', () => {
 
   describe('Audio block to HTML conversion', () => {
     it('should convert audio block back to HTML for preview', () => {
-      const audioBlock = {
-        _type: 'audio' as const,
+      const audioBlock = createTestAudioBlock({
         _key: 'audio1',
         url: 'http://example.com/audio.mp3',
         title: 'Test Audio',
         showControls: true,
         autoplay: false
-      }
+      })
 
       const html = blockContentToHtml([audioBlock])
       
@@ -98,12 +102,11 @@ describe('Audio Block Conversion', () => {
     })
 
     it('should handle local audio paths', () => {
-      const audioBlock = {
-        _type: 'audio' as const,
+      const audioBlock = createTestAudioBlock({
         _key: 'audio2',
         localPath: 'input/uploads/2023/03/audio.wav',
         showControls: true
-      }
+      })
 
       const html = blockContentToHtml([audioBlock])
       
@@ -145,8 +148,9 @@ describe('Audio Block Conversion', () => {
       // Verify audio block details
       const audioBlock = result.content[3]
       if (audioBlock._type === 'audio') {
-        expect(audioBlock.title).toBe('Audio description')
-        expect(audioBlock.url).toBe('http://example.com/audio.mp3')
+        const migrationAudioBlock = audioBlock as MigrationAudioBlock
+        expect(migrationAudioBlock.title).toBe('Audio description')
+        expect(migrationAudioBlock.url).toBe('http://example.com/audio.mp3')
       }
       
       // Check media extraction includes both image and audio

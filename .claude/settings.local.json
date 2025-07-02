@@ -15,7 +15,8 @@
       "Bash(find:*)",
       "Bash(touch:*)",
       "Bash(bun test:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

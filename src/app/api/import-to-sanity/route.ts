@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@sanity/client'
 import fs from 'fs/promises'
 import path from 'path'
-import { MigrationRecord, isSanityPost, getContentTitle } from '@/types/migration'
-import type { Post, Page } from '@/../input/sanity.types'
+import { MigrationRecord, getContentTitle, MigrationBlockContent } from '@/types/migration'
+import type { Post, Page, BlockContent } from '@/../input/sanity.types'
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
@@ -25,25 +25,46 @@ interface ImportProgress {
 async function uploadMedia(
   mediaPath: string,
   mediaType: 'image' | 'audio' | 'video',
+  maxRetries: number = 3
 ): Promise<string | null> {
-  try {
-    const absolutePath = path.resolve(mediaPath)
-    const fileBuffer = await fs.readFile(absolutePath)
-    const fileName = path.basename(absolutePath)
+  const absolutePath = path.resolve(mediaPath)
+  const fileName = path.basename(absolutePath)
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const fileBuffer = await fs.readFile(absolutePath)
 
-    // Sanity only accepts 'image' or 'file' as asset types
-    // Audio and video files should be uploaded as 'file'
-    const sanityAssetType = mediaType === 'image' ? 'image' : 'file'
+      // Sanity only accepts 'image' or 'file' as asset types
+      // Audio and video files should be uploaded as 'file'
+      const sanityAssetType = mediaType === 'image' ? 'image' : 'file'
 
-    const asset = await client.assets.upload(sanityAssetType, fileBuffer, {
-      filename: fileName,
-    })
+      const asset = await client.assets.upload(sanityAssetType, fileBuffer, {
+        filename: fileName,
+      })
 
-    return asset._id
-  } catch (error) {
-    console.error(`Failed to upload media: ${mediaPath}`, error)
-    return null
+      return asset._id
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      
+      console.error(`Failed to upload media (attempt ${attempt}/${maxRetries}): ${mediaPath}`, errorMessage)
+      
+      // Don't retry on certain errors
+      if (errorMessage.includes('File too large') || 
+          errorMessage.includes('Invalid file type') ||
+          errorMessage.includes('ENOENT')) {
+        return null
+      }
+      
+      if (!isLastAttempt) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, attempt - 1) * 1000
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
   }
+  
+  return null
 }
 
 // Document types that match the actual Sanity schema
@@ -96,49 +117,67 @@ function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, 
 
 // Helper function to process media references in content
 function processMediaInContent(
-  content: any[],
-  media: any[],
+  content: MigrationBlockContent,
+  media: Array<{ type: string; url: string; localPath: string; found: boolean }>,
   mediaAssets: Map<string, string>
-): any[] {
+): BlockContent {
   return content.map(block => {
-    if (block._type === 'image' && block.localPath) {
-      const assetId = mediaAssets.get(block.localPath)
+    if (block._type === 'image' && 'url' in block && 'localPath' in block) {
+      const assetId = block.localPath ? mediaAssets.get(block.localPath) : undefined
       if (assetId) {
+        // Return proper Sanity image block without temporary properties
+        const imageBlock = { ...block }
+        delete (imageBlock as Record<string, unknown>).url
+        delete (imageBlock as Record<string, unknown>).localPath
         return {
-          ...block,
+          ...imageBlock,
           asset: {
-            _type: 'reference',
+            _type: 'reference' as const,
             _ref: assetId
           }
         }
       }
-    } else if (block._type === 'audio' && block.localPath) {
-      const assetId = mediaAssets.get(block.localPath)
+      // If no asset found, return without the temporary properties
+      const imageBlock = { ...block }
+      delete (imageBlock as Record<string, unknown>).url
+      delete (imageBlock as Record<string, unknown>).localPath
+      return imageBlock
+    } else if (block._type === 'audio' && 'url' in block && 'localPath' in block) {
+      const assetId = block.localPath ? mediaAssets.get(block.localPath) : undefined
       if (assetId) {
+        // Return proper Sanity audio block without temporary properties
+        const audioBlock = { ...block }
+        delete (audioBlock as Record<string, unknown>).url
+        delete (audioBlock as Record<string, unknown>).localPath
         return {
-          _type: 'audio',
-          _key: block._key,
+          ...audioBlock,
           audioFile: {
+            ...audioBlock.audioFile,
             asset: {
-              _type: 'reference',
+              _type: 'reference' as const,
               _ref: assetId
-            },
-            _type: 'file'
-          },
-          title: block.title,
-          description: block.description,
-          showControls: block.showControls !== false, // Default to true
-          autoplay: block.autoplay || false
+            }
+          }
         }
       }
+      // If no asset found, return without the temporary properties
+      const audioBlock = { ...block }
+      delete (audioBlock as Record<string, unknown>).url
+      delete (audioBlock as Record<string, unknown>).localPath
+      return audioBlock
+    } else if (block._type === 'video' && 'localPath' in block) {
+      // For video blocks, just remove the localPath property
+      const videoBlock = { ...block }
+      delete (videoBlock as Record<string, unknown>).localPath
+      return videoBlock
     }
     return block
-  })
+  }) as BlockContent
 }
 
 // Helper function to find first image asset for cover image
 function findFirstImageAssetId(
-  media: any[],
+  media: Array<{ type: string; url: string; localPath: string; found: boolean }>,
   mediaAssets: Map<string, string>
 ): string | null {
   const firstImage = media?.find(m => m.type === 'image' && m.found)

@@ -4,10 +4,25 @@ import type {
   SanityPageContent,
   SanityContent,
   ExtendedBlockContent,
-  MediaReference
+  MediaReference,
+  MigrationBlockContent
 } from '../types/migration'
 import { htmlToBlockContent } from '../utils/html-to-portable-text'
 import { extractMediaFromContent, mapMediaToLocalPaths } from '../utils/media-processor'
+import { nanoid } from 'nanoid'
+
+// Simple HTML stripping helper
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim()
+}
 
 /**
  * Static utility class for transforming WordPress content to Sanity format.
@@ -20,8 +35,32 @@ export class SanityContentTransformer {
    * This unified method handles both posts and pages when treating them as posts.
    */
   static async toSanityPost(wordpressContent: WordPressPost): Promise<SanityPostContent> {
-    // Convert HTML to BlockContent and extract media
-    const { content, media } = await htmlToBlockContent(wordpressContent.post_content)
+    let content: MigrationBlockContent
+    let media: MediaReference[]
+    
+    try {
+      // Convert HTML to BlockContent and extract media
+      const result = await htmlToBlockContent(wordpressContent.post_content)
+      content = result.content
+      media = result.media
+    } catch (error) {
+      console.error(`Failed to convert HTML for post "${wordpressContent.post_title}" (ID: ${wordpressContent.ID}):`, error)
+      // Return minimal content on error
+      content = [{
+        _type: 'block',
+        _key: nanoid(),
+        style: 'normal',
+        children: [{
+          _type: 'span',
+          _key: nanoid(),
+          text: wordpressContent.post_content ? 
+            stripHtml(wordpressContent.post_content).substring(0, 500) + '...' : 
+            'Content conversion failed'
+        }],
+        markDefs: []
+      }]
+      media = []
+    }
 
     // Create a plain text version of the content for the body field
     const bodyText = this.extractPlainTextFromContent(content)
@@ -95,7 +134,7 @@ export class SanityContentTransformer {
   static fromData(data: {
     title: string
     slug: string
-    content?: ExtendedBlockContent
+    content?: MigrationBlockContent
     excerpt?: string
     date?: string
     media?: MediaReference[]
@@ -126,7 +165,7 @@ export class SanityContentTransformer {
    * Extracts plain text from block content for the body field.
    * This is useful for search indexing and previews.
    */
-  private static extractPlainTextFromContent(blocks?: ExtendedBlockContent): string {
+  private static extractPlainTextFromContent(blocks?: MigrationBlockContent | ExtendedBlockContent): string {
     if (!blocks || blocks.length === 0) return ''
 
     return blocks

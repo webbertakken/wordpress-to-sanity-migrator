@@ -2,7 +2,7 @@
 import { JSDOM } from 'jsdom'
 import { nanoid } from 'nanoid'
 import { extractMediaFromContent, mapMediaToLocalPaths } from '../media-processor'
-import type { MediaReference, ExtendedBlockContent } from '../../types/migration'
+import type { MediaReference, MigrationBlockContent, MigrationAudioBlock, MigrationImageBlock } from '../../types/migration'
 
 // Create a single JSDOM instance to reuse across tests
 let cachedJSDOM: typeof JSDOM | null = null
@@ -17,7 +17,7 @@ async function getJSDOM(): Promise<typeof JSDOM> {
 
 export async function testHtmlToBlockContent(
   html: string,
-): Promise<{ content: ExtendedBlockContent; media: MediaReference[] }> {
+): Promise<{ content: MigrationBlockContent; media: MediaReference[] }> {
   // First extract and map media references
   const mediaRefs = extractMediaFromContent(html)
   const mappedMedia = mapMediaToLocalPaths(mediaRefs)
@@ -34,7 +34,7 @@ export async function testHtmlToBlockContent(
   const doc = dom.window.document
   const body = doc.body
   
-  const blocks: ExtendedBlockContent = []
+  const blocks: MigrationBlockContent = []
   
   // Simplified processing for tests - just handle the main cases
   body.querySelectorAll('p, figure, audio, img').forEach((element) => {
@@ -63,26 +63,31 @@ export async function testHtmlToBlockContent(
         if (audio) {
           const src = audio.getAttribute('src')
           if (src) {
-            blocks.push({
+            const audioBlock: MigrationAudioBlock = {
               _type: 'audio',
               _key: nanoid(),
               url: src,
               localPath: mediaMap.get(src)?.localPath,
+              audioFile: {
+                _type: 'file',
+              },
               showControls: audio.hasAttribute('controls'),
               autoplay: audio.hasAttribute('autoplay'),
               title: figcaption?.textContent?.trim(),
-            })
+            }
+            blocks.push(audioBlock)
           }
         } else if (img) {
           const src = img.getAttribute('src')
           if (src) {
-            blocks.push({
+            const imageBlock: MigrationImageBlock = {
               _type: 'image',
               _key: nanoid(),
               alt: img.getAttribute('alt') || '',
               url: src,
               localPath: mediaMap.get(src)?.localPath,
-            })
+            }
+            blocks.push(imageBlock)
           }
         }
         break
@@ -90,27 +95,32 @@ export async function testHtmlToBlockContent(
       case 'audio':
         const src = element.getAttribute('src')
         if (src) {
-          blocks.push({
+          const audioBlock: MigrationAudioBlock = {
             _type: 'audio',
             _key: nanoid(),
             url: src,
             localPath: mediaMap.get(src)?.localPath,
+            audioFile: {
+              _type: 'file',
+            },
             showControls: element.hasAttribute('controls'),
             autoplay: element.hasAttribute('autoplay'),
-          })
+          }
+          blocks.push(audioBlock)
         }
         break
         
       case 'img':
         const imgSrc = element.getAttribute('src')
         if (imgSrc) {
-          blocks.push({
+          const imageBlock: MigrationImageBlock = {
             _type: 'image',
             _key: nanoid(),
             alt: element.getAttribute('alt') || '',
             url: imgSrc,
             localPath: mediaMap.get(imgSrc)?.localPath,
-          })
+          }
+          blocks.push(imageBlock)
         }
         break
     }

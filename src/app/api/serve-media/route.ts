@@ -40,7 +40,15 @@ export async function GET(request: NextRequest) {
     if (!fs.existsSync(absolutePath)) {
       console.error(`File not found: ${absolutePath} (requested path: ${filePath})`)
       return NextResponse.json(
-        { error: 'File not found', absolutePath, requestedPath: filePath },
+        {
+          error: 'Media file not found',
+          details: {
+            requestedFile: path.basename(filePath),
+            searchedIn: inputDir,
+            suggestion: 'Please ensure your WordPress uploads directory is copied to input/uploads/',
+            expectedStructure: 'input/uploads/[year]/[month]/[filename]'
+          }
+        },
         { status: 404 },
       )
     }
@@ -95,6 +103,13 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error serving media:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to serve media file',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        suggestion: 'Check server logs for more details'
+      },
+      { status: 500 }
+    )
   }
 }
