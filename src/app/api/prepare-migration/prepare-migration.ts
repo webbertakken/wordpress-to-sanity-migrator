@@ -12,12 +12,8 @@ import type {
   ExtendedBlockContent,
   MigrationOptions,
 } from '../../../types/migration'
-import {
-  extractMediaFromContent,
-  mapMediaToLocalPaths,
-  generateMediaStats,
-} from '../../../utils/media-processor'
-import { htmlToBlockContent } from '../../../utils/html-to-portable-text'
+import { generateMediaStats } from '../../../utils/media-processor'
+import { SanityContentTransformer } from '../../../domain/sanity-content-transformer'
 
 // Load environment variables if needed
 // require('dotenv').config();
@@ -140,57 +136,12 @@ export async function prepareMigration(
       // Small delay to ensure streaming works properly
       await new Promise((resolve) => setTimeout(resolve, 10))
 
-      // We'll process media during HTML to BlockContent conversion
-      let processedContent: { content: ExtendedBlockContent; media: MediaReference[] } | undefined
-      let mappedMediaRefs: MediaReference[] = []
-
-      // Build Sanity content object based on type
-      // If parsePagesAsPosts is enabled, treat all content as posts
-      let sanityContent: SanityContent
-      const shouldTreatAsPost = item.post_type === 'post' || (options?.parsePagesAsPosts && item.post_type === 'page')
-
-      if (shouldTreatAsPost) {
-        // Convert HTML to BlockContent and extract media
-        processedContent = await htmlToBlockContent(item.post_content)
-        mappedMediaRefs = processedContent.media
-
-        const postContent: SanityPostContent = {
-          _type: 'post',
-          title: item.post_title,
-          slug: {
-            _type: 'slug',
-            current: item.post_name,
-            source: 'title',
-          },
-          content: processedContent.content,
-          excerpt: item.post_excerpt || undefined,
-          coverImage: {
-            _type: 'image',
-            alt: `Cover image for ${item.post_title}`,
-          },
-          date: item.post_date,
-          media: mappedMediaRefs,
-        }
-        sanityContent = postContent
-      } else {
-        // For pages (when not treating as posts), we still extract media but don't convert content
-        const mediaRefs = extractMediaFromContent(item.post_content)
-        mappedMediaRefs = mapMediaToLocalPaths(mediaRefs)
-
-        const pageContent: SanityPageContent = {
-          _type: 'page',
-          name: item.post_title,
-          slug: {
-            _type: 'slug',
-            current: item.post_name,
-            source: 'name',
-          },
-          heading: item.post_title,
-          subheading: item.post_excerpt || undefined,
-          media: mappedMediaRefs,
-        }
-        sanityContent = pageContent
-      }
+      // Use the unified transformer
+      const sanityContent = await SanityContentTransformer.transform(item, {
+        treatAsPost: options?.parsePagesAsPosts
+      })
+      
+      const mappedMediaRefs = sanityContent.media
 
       // Generate stats for this item
       const itemStats = generateMediaStats(mappedMediaRefs)

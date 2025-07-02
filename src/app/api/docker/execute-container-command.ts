@@ -166,7 +166,7 @@ export async function executeContainerCommand(
           ) {
             errorMessage = 'Port 3306 is already in use'
             errorDetails = {
-              ...errorDetails,
+              ...(typeof errorDetails === 'object' && errorDetails !== null ? errorDetails : {}),
               guidance:
                 'Another application or container is already using port 3306.\n' +
                 'Please stop any existing MySQL/MariaDB services or containers.\n' +
@@ -175,7 +175,7 @@ export async function executeContainerCommand(
           } else if (stderr.includes('conflict') && stderr.includes('name')) {
             errorMessage = 'Container with this name already exists'
             errorDetails = {
-              ...errorDetails,
+              ...(typeof errorDetails === 'object' && errorDetails !== null ? errorDetails : {}),
               guidance:
                 'A container named "' +
                 CONTAINER_NAME +

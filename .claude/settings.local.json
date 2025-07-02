@@ -11,7 +11,9 @@
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
       "Bash(npx prettier:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(find:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }

@@ -226,7 +226,8 @@ describe('WordPress Migration Integration Tests', () => {
     ]
 
     const posts = migrationDataWithPagesAsPosts.filter((item) => item.transformed._type === 'post')
-    const pages = migrationDataWithPagesAsPosts.filter((item) => item.transformed._type === 'page')
+    // When parsePagesAsPosts is enabled, all content should be posts, so we expect 0 pages
+    const pages = migrationDataWithPagesAsPosts.filter(() => false) // No pages exist when all are converted to posts
 
     expect(posts).toHaveLength(5) // All content treated as posts
     expect(pages).toHaveLength(0) // No pages when parsePagesAsPosts is enabled

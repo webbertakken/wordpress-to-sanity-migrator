@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import type { MigrationRecord, MediaReference } from '../types/migration'
+import { getContentTitle } from '../types/migration'
 
 interface ImportProgress {
   type: 'progress' | 'success' | 'error' | 'info'
@@ -61,11 +62,11 @@ export const ImportToSanityUI: React.FC = () => {
       // Debug: Check what each record looks like
       migrationData.slice(0, 3).forEach((record, index) => {
         console.log(`Record ${index}:`, {
-          hasMedia: !!record.media,
+          hasMedia: !!record.transformed?.media,
           hasTransformedMedia: !!record.transformed?.media,
-          mediaLength: record.media?.length || record.transformed?.media?.length,
+          mediaLength: record.transformed?.media?.length,
           hasTransformed: !!record.transformed,
-          title: record.transformed?.title,
+          title: getContentTitle(record.transformed),
           hasOriginal: !!record.original,
           originalId: record.original?.ID,
         })
@@ -73,23 +74,19 @@ export const ImportToSanityUI: React.FC = () => {
 
       const postsWithMedia = migrationData
         .filter((record: MigrationRecord) => {
-          // Try both locations for media property
-          const media =
-            (record as MigrationRecord & { media?: MediaReference[] }).media ||
-            record.transformed?.media
+          // Get media from transformed property
+          const media = record.transformed?.media
           const hasMedia = media && Array.isArray(media) && media.length > 0
           if (!hasMedia) {
-            console.log('Filtered out record:', record.transformed?.title, 'media:', media)
+            console.log('Filtered out record:', getContentTitle(record.transformed), 'media:', media)
           }
           return hasMedia
         })
         .map((record: MigrationRecord) => {
-          const media: MediaReference[] =
-            (record as MigrationRecord & { media?: MediaReference[] }).media ||
-            record.transformed?.media
+          const media: MediaReference[] = record.transformed?.media || []
           return {
             id: record.original.ID,
-            title: record.transformed.title,
+            title: getContentTitle(record.transformed),
             mediaCount: media.length,
             mediaTypes: [...new Set(media.map((m: MediaReference) => m.type))],
           }
@@ -430,11 +427,23 @@ export const ImportToSanityUI: React.FC = () => {
                   >
                     {msg.message}
                   </p>
-                  {msg.details && (
+                  {msg.details ? (
                     <pre className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">
-                      {JSON.stringify(msg.details, null, 2)}
+                      {(() => {
+                        try {
+                          if (typeof msg.details === 'string') {
+                            return msg.details
+                          } else if (typeof msg.details === 'object' && msg.details !== null) {
+                            return JSON.stringify(msg.details, null, 2)
+                          } else {
+                            return String(msg.details)
+                          }
+                        } catch {
+                          return 'Error displaying details'
+                        }
+                      })()}
                     </pre>
-                  )}
+                  ) : null}
                   {msg.current && msg.total && (
                     <div className="mt-2">
                       <div className="w-full bg-gray-800 rounded-full h-2">

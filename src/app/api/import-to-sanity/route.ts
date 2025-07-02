@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@sanity/client'
 import fs from 'fs/promises'
 import path from 'path'
-import { MigrationRecord } from '@/types/migration'
+import { MigrationRecord, isSanityPost, getContentTitle } from '@/types/migration'
+import type { Post, Page } from '@/../input/sanity.types'
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
@@ -45,55 +46,87 @@ async function uploadMedia(
   }
 }
 
-function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, string>) {
-  const { original, transformed } = record
-  const media = record.media || record.transformed?.media
+// Document types that match the actual Sanity schema
+type SanityDocumentPost = Omit<Post, '_id' | '_createdAt' | '_updatedAt' | '_rev'>
+type SanityDocumentPage = Omit<Page, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'pageBuilder'>
+type SanityDocument = SanityDocumentPost | SanityDocumentPage
 
-  // Process media references and replace URLs with Sanity asset references
-  let processedBody = transformed.body
+function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, string>): SanityDocument {
+  const { transformed } = record
+  const media = transformed.media
 
-  media?.forEach((mediaRef) => {
-    const assetId = mediaAssets.get(mediaRef.localPath)
-    if (assetId && mediaRef.found) {
-      // Replace local path with Sanity asset reference in the body
-      const sanityImageRef = `<img src="https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${assetId}" />`
-      processedBody = processedBody.replace(
-        new RegExp(mediaRef.localPath.replace(/\\/g, '\\\\'), 'g'),
-        sanityImageRef,
-      )
+  if (transformed._type === 'post') {
+    // Process the content to replace media URLs with Sanity asset references
+    const processedContent = transformed.content ? 
+      processMediaInContent(transformed.content, media, mediaAssets) : 
+      undefined
+
+    // Find the first image in content to use as cover image if needed
+    const firstImageAssetId = findFirstImageAssetId(media, mediaAssets)
+
+    const postDoc: SanityDocumentPost = {
+      _type: 'post',
+      title: transformed.title,
+      slug: transformed.slug,
+      content: processedContent,
+      excerpt: transformed.excerpt,
+      coverImage: {
+        _type: 'image',
+        asset: firstImageAssetId ? {
+          _type: 'reference',
+          _ref: firstImageAssetId
+        } : undefined,
+        alt: transformed.coverImage?.alt
+      },
+      date: transformed.date
     }
-  })
-
-  return {
-    _type: 'post',
-    title: transformed.title,
-    slug: {
-      _type: 'slug',
-      current: transformed.slug,
-    },
-    publishedAt: transformed.publishedAt,
-    body: processedBody,
-    excerpt: transformed.excerpt || '',
-    originalWordPressId: original.ID,
-    postType: original.post_type,
-    media:
-      media
-        ?.filter((m) => m.found)
-        .map((mediaRef) => {
-          const assetId = mediaAssets.get(mediaRef.localPath)
-          return assetId
-            ? {
-                _type: mediaRef.type === 'image' ? 'image' : 'file',
-                asset: {
-                  _type: 'reference',
-                  _ref: assetId,
-                },
-                originalUrl: mediaRef.url,
-              }
-            : null
-        })
-        .filter(Boolean) || [],
+    return postDoc
+  } else {
+    // Page type
+    const pageDoc: SanityDocumentPage = {
+      _type: 'page',
+      name: transformed.name,
+      slug: transformed.slug,
+      heading: transformed.heading,
+      subheading: transformed.subheading
+    }
+    return pageDoc
   }
+}
+
+// Helper function to process media references in content
+function processMediaInContent(
+  content: any[],
+  media: any[],
+  mediaAssets: Map<string, string>
+): any[] {
+  return content.map(block => {
+    if (block._type === 'image' && block.localPath) {
+      const assetId = mediaAssets.get(block.localPath)
+      if (assetId) {
+        return {
+          ...block,
+          asset: {
+            _type: 'reference',
+            _ref: assetId
+          }
+        }
+      }
+    }
+    return block
+  })
+}
+
+// Helper function to find first image asset for cover image
+function findFirstImageAssetId(
+  media: any[],
+  mediaAssets: Map<string, string>
+): string | null {
+  const firstImage = media?.find(m => m.type === 'image' && m.found)
+  if (firstImage) {
+    return mediaAssets.get(firstImage.localPath) || null
+  }
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -148,12 +181,12 @@ export async function POST(request: NextRequest) {
           recordsToImport = [selectedRecord]
           send({
             type: 'info',
-            message: `${testRun ? 'Test run: importing' : 'Importing'} single record "${selectedRecord.transformed.title}"`,
+            message: `${testRun ? 'Test run: importing' : 'Importing'} single record "${getContentTitle(selectedRecord.transformed)}"`,
           })
         } else if (testRun) {
           // Find a record with both image and audio media for test
           const recordWithMixedMedia = migrationData.find((record) => {
-            const media = record.media || []
+            const media = record.transformed.media || []
             const hasImage = media.some((m) => m.type === 'image' && m.found)
             const hasAudio = media.some((m) => m.type === 'audio' && m.found)
             return hasImage && hasAudio
@@ -163,12 +196,12 @@ export async function POST(request: NextRequest) {
             recordsToImport = [recordWithMixedMedia]
             send({
               type: 'info',
-              message: `Test run: importing record with mixed media "${recordWithMixedMedia.transformed.title}"`,
+              message: `Test run: importing record with mixed media "${getContentTitle(recordWithMixedMedia.transformed)}"`,
             })
           } else {
             // Fallback to first record with any media
             const recordWithMedia = migrationData.find((record) => {
-              const media = record.media || []
+              const media = record.transformed.media || []
               return media.some((m) => m.found)
             })
 
@@ -176,13 +209,13 @@ export async function POST(request: NextRequest) {
               recordsToImport = [recordWithMedia]
               send({
                 type: 'info',
-                message: `Test run: importing record with media "${recordWithMedia.transformed.title}"`,
+                message: `Test run: importing record with media "${getContentTitle(recordWithMedia.transformed)}"`,
               })
             } else {
               recordsToImport = [migrationData[0]]
               send({
                 type: 'info',
-                message: `Test run: importing first record "${migrationData[0].transformed.title}"`,
+                message: `Test run: importing first record "${getContentTitle(migrationData[0].transformed)}"`,
               })
             }
           }
@@ -200,14 +233,14 @@ export async function POST(request: NextRequest) {
           processedRecords++
           send({
             type: 'progress',
-            message: `Processing record: ${record.transformed.title}`,
+            message: `Processing record: ${getContentTitle(record.transformed)}`,
             step: 'processing',
             current: processedRecords,
             total: recordsToImport.length,
           })
 
           // Process media files (upload in production, simulate in test)
-          const media = record.media || record.transformed?.media
+          const media = record.transformed.media
           if (media && media.length > 0) {
             send({
               type: 'info',
@@ -267,20 +300,25 @@ export async function POST(request: NextRequest) {
               type: 'info',
               message: 'Test run - Document preview:',
               details: {
-                title: sanityDoc.title,
+                _type: sanityDoc._type,
+                title: sanityDoc._type === 'post' ? sanityDoc.title : sanityDoc.name,
                 slug: sanityDoc.slug.current,
-                mediaCount: sanityDoc.media.length,
-                bodyLength: sanityDoc.body.length,
-                hasMedia: sanityDoc.media.length > 0,
-                mediaTypes: [...new Set(record.media?.map((m) => m.type) || [])],
+                hasContent: sanityDoc._type === 'post' ? !!sanityDoc.content && sanityDoc.content.length > 0 : false,
+                contentBlocks: sanityDoc._type === 'post' ? sanityDoc.content?.length || 0 : 0,
+                hasExcerpt: sanityDoc._type === 'post' ? !!sanityDoc.excerpt : false,
+                hasCoverImage: sanityDoc._type === 'post' ? !!sanityDoc.coverImage.asset : false,
+                mediaInContent: record.transformed.media?.length || 0,
+                mediaTypes: [...new Set(record.transformed.media?.map((m) => m.type) || [])],
               },
             })
           } else {
             // Actually create the document
-            const result = await client.create(sanityDoc)
+            // The client.create method accepts any document shape, but we need to cast
+            // to satisfy TypeScript's strict type checking
+            const result = await client.create(sanityDoc as Parameters<typeof client.create>[0])
             send({
               type: 'success',
-              message: `Created document: ${result.title}`,
+              message: `Created document: ${getContentTitle(record.transformed)}`,
               details: { documentId: result._id },
             })
           }

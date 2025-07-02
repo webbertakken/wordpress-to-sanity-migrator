@@ -21,7 +21,6 @@
 /input/database/*.sql
 /input/uploads/
 /input/sanity-migration.json
-/input/sanity.types.*
 
 # production
 /build

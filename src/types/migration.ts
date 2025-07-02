@@ -1,4 +1,4 @@
-import type { Post, Page } from '../../input/sanity.types'
+import type { Post, Page, BlockContent } from '../../input/sanity.types'
 
 export interface MediaReference {
   url: string
@@ -31,38 +31,10 @@ export interface SanityImage {
   alt?: string
 }
 
-// Extended BlockContent that includes image blocks
+// Extended BlockContent that includes image blocks for migration purposes
+// The base BlockContent from Sanity doesn't include images, but we need them during migration
 export type ExtendedBlockContent = Array<
-  | {
-      children?: Array<{
-        marks?: Array<string>
-        text?: string
-        _type: 'span'
-        _key: string
-      }>
-      style?: 'normal' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote'
-      listItem?: 'bullet' | 'number'
-      markDefs?: Array<{
-        linkType?: 'href' | 'page' | 'post'
-        href?: string
-        page?: {
-          _ref: string
-          _type: 'reference'
-          _weak?: boolean
-        }
-        post?: {
-          _ref: string
-          _type: 'reference'
-          _weak?: boolean
-        }
-        openInNewTab?: boolean
-        _type: 'link'
-        _key: string
-      }>
-      level?: number
-      _type: 'block'
-      _key: string
-    }
+  | BlockContent[number]  // All the standard block types from Sanity
   | {
       _type: 'image'
       _key: string
@@ -76,20 +48,39 @@ export type ExtendedBlockContent = Array<
     }
 >
 
+// Types for migration that extend the actual Sanity schema types
+// We omit the system fields that are added by Sanity at creation time
 export interface SanityPostContent
-  extends Omit<Post, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev' | 'content'> {
-  _type: 'post'
+  extends Omit<Post, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'content' | 'author'> {
   content?: ExtendedBlockContent
   media: MediaReference[]
+  // Additional fields for migration purposes
+  body?: string
 }
 
 export interface SanityPageContent
-  extends Omit<Page, '_id' | '_type' | '_createdAt' | '_updatedAt' | '_rev'> {
-  _type: 'page'
+  extends Omit<Page, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'pageBuilder'> {
   media: MediaReference[]
 }
 
 export type SanityContent = SanityPostContent | SanityPageContent
+
+// Helper type guards
+export function isSanityPost(content: SanityContent): content is SanityPostContent {
+  return content._type === 'post'
+}
+
+export function isSanityPage(content: SanityContent): content is SanityPageContent {
+  return content._type === 'page'
+}
+
+// Helper to get title from either post or page
+export function getContentTitle(content: SanityContent): string {
+  if (isSanityPost(content)) {
+    return content.title || ''
+  }
+  return content.name || ''
+}
 
 export interface MigrationRecord {
   original: WordPressPost

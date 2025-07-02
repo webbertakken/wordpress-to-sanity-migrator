@@ -1,11 +1,9 @@
-# Ignoring generated files
-dist/
-coverage/
-node_modules/
-.yarn/
 .next/
-.idea/
+node_modules/
+dist/
+build/
+coverage/
 .turbo/
-.sanity/
-.migrations/
-sanity.types.ts
+*.min.js
+*.config.js
+*.config.mjs
