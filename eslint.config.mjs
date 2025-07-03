@@ -10,35 +10,22 @@ const compat = new FlatCompat({
 })
 
 const eslintConfig = [
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
-    ignores: [
-      '.next/**',
-      'node_modules/**',
-      'dist/**',
-      'build/**',
-      'coverage/**',
-      '.turbo/**',
-      '**/*.min.js',
-      '*.config.js',
-      '*.config.mjs',
-      '*.config.ts',
-      'tailwind.config.ts',
-      'next.config.ts',
-    ],
-  },
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
-  ...compat.plugins('prettier'),
-  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: {
+      prettier: (await import('eslint-plugin-prettier')).default,
+    },
     rules: {
       'prettier/prettier': 'error',
     },
   },
+
   // Relaxed rules for test files
   {
     files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
 ]

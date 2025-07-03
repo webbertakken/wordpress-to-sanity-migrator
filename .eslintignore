@@ -1,9 +1,0 @@
-.next/
-node_modules/
-dist/
-build/
-coverage/
-.turbo/
-*.min.js
-*.config.js
-*.config.mjs

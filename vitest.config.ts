@@ -1,13 +1,21 @@
-/// <reference types="vitest" />
 import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
+  plugins: [react()],
   test: {
-    environment: 'node',
+    environment: 'jsdom',
+    setupFiles: ['./src/vitest.setup.ts'],
     globals: true,
-    setupFiles: ['./vitest.setup.ts'],
+    css: true,
+    exclude: ['**/e2e/**', '**/node_modules/**'],
+    silent: false,
     reporters: ['verbose'],
-    testTimeout: 20000, // Increase timeout for tests with dynamic imports
-    hookTimeout: 20000,
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
 })
