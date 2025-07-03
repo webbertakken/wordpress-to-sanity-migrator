@@ -1,6 +1,7 @@
 // Lightweight HTML to Portable Text converter without JSDOM
 import { nanoid } from 'nanoid'
 import { extractMediaFromContent, mapMediaToLocalPaths } from './media-processor'
+import { parseInlineHTML, createBlockWithInlineContent } from './parse-inline-html'
 import type {
   MediaReference,
   MigrationBlockContent,
@@ -324,6 +325,10 @@ export async function htmlToBlockContent(
     /<video[^>]*>[\s\S]*?<\/video>/gi,
     // Iframe embeds (for YouTube/Vimeo)
     /<iframe[^>]*>/gi,
+    // Blockquote elements
+    /<blockquote[^>]*>[\s\S]*?<\/blockquote>/gi,
+    // List elements (ul and ol)
+    /<(ul|ol)[^>]*>[\s\S]*?<\/\1>/gi,
     // Paragraph elements
     /<p[^>]*>[\s\S]*?<\/p>/gi,
     // Heading elements
@@ -420,44 +425,64 @@ export async function htmlToBlockContent(
       blocks.push(...imageBlocks)
     } else if (element.startsWith('<p')) {
       const textMatch = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(element)
-      if (textMatch) {
-        const text = stripHtml(textMatch[1])
-        if (text) {
-          blocks.push({
-            _type: 'block',
-            _key: nanoid(),
-            style: 'normal',
-            children: [
-              {
-                _type: 'span',
-                _key: nanoid(),
-                text,
-              },
-            ],
-            markDefs: [],
-          })
-        }
+      if (textMatch && textMatch[1].trim()) {
+        const block = createBlockWithInlineContent(textMatch[1], 'normal')
+        blocks.push(block)
       }
     } else if (element.match(/^<h[1-6]/)) {
       const headingMatch = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/i.exec(element)
-      if (headingMatch) {
+      if (headingMatch && headingMatch[2].trim()) {
         const level = `h${headingMatch[1]}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
-        const text = stripHtml(headingMatch[2])
-        if (text) {
-          blocks.push({
-            _type: 'block',
-            _key: nanoid(),
-            style: level,
-            children: [
-              {
-                _type: 'span',
-                _key: nanoid(),
-                text,
-              },
-            ],
-            markDefs: [],
-          })
-        }
+        const block = createBlockWithInlineContent(headingMatch[2], level)
+        blocks.push(block)
+      }
+    } else if (element.startsWith('<blockquote')) {
+      const blockquoteMatch = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/i.exec(element)
+      if (blockquoteMatch && blockquoteMatch[1].trim()) {
+        // Extract paragraphs from blockquote
+        const innerHtml = blockquoteMatch[1]
+        const paragraphs = innerHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [innerHtml]
+
+        paragraphs.forEach((p) => {
+          const pMatch = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(p)
+          const content = pMatch ? pMatch[1] : p
+          if (content.trim()) {
+            const block = createBlockWithInlineContent(content, 'blockquote')
+            blocks.push(block)
+          }
+        })
+      }
+    } else if (element.match(/^<(ul|ol)/)) {
+      const listMatch = /<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/i.exec(element)
+      if (listMatch) {
+        const listType = listMatch[1] === 'ul' ? 'bullet' : 'number'
+        const listHtml = listMatch[2]
+        const items = listHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || []
+
+        items.forEach((item) => {
+          const itemMatch = /<li[^>]*>([\s\S]*?)<\/li>/i.exec(item)
+          if (itemMatch && itemMatch[1].trim()) {
+            const { children, markDefs } = parseInlineHTML(itemMatch[1])
+            blocks.push({
+              _type: 'block',
+              _key: nanoid(),
+              style: 'normal',
+              listItem: listType,
+              level: 1,
+              children:
+                children.length > 0
+                  ? children
+                  : [
+                      {
+                        _type: 'span',
+                        _key: nanoid(),
+                        text: '',
+                      },
+                    ],
+              markDefs,
+            })
+          }
+        })
       }
     }
 

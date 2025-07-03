@@ -72,6 +72,15 @@ export class SanityContentTransformer {
     // Create a plain text version of the content for the body field
     const bodyText = this.extractPlainTextFromContent(content)
 
+    // Generate excerpt if not provided
+    let excerpt = wordpressContent.post_excerpt
+    if (!excerpt && bodyText) {
+      // Take first 150 characters of body text as excerpt
+      const maxLength = 150
+      excerpt =
+        bodyText.length > maxLength ? bodyText.substring(0, maxLength).trim() + '...' : bodyText
+    }
+
     return {
       _type: 'post',
       title: wordpressContent.post_title,
@@ -81,7 +90,7 @@ export class SanityContentTransformer {
         source: 'title',
       },
       content,
-      excerpt: wordpressContent.post_excerpt || undefined,
+      excerpt: excerpt || undefined,
       coverImage: {
         _type: 'image',
         alt: `Cover image for ${wordpressContent.post_title}`,
@@ -180,12 +189,17 @@ export class SanityContentTransformer {
     return blocks
       .map((block) => {
         if (block._type === 'block' && block.children) {
-          return block.children.map((child) => child.text || '').join('')
+          const text = block.children.map((child) => child.text || '').join('')
+          // Add double line break after paragraphs and single after headings
+          if (text) {
+            return block.style === 'normal' || block.style === 'blockquote'
+              ? text + '\n\n'
+              : text + '\n'
+          }
         }
         return ''
       })
-      .filter((text) => text.length > 0)
-      .join(' ')
+      .join('')
       .trim()
   }
 
