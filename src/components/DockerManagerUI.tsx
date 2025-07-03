@@ -11,7 +11,11 @@ interface DockerStep {
   info?: boolean
 }
 
-export const DockerManagerUI: React.FC = () => {
+interface DockerManagerUIProps {
+  onComplete?: () => void
+}
+
+export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -101,6 +105,15 @@ export const DockerManagerUI: React.FC = () => {
                 } else if (data.type === 'result') {
                   setResult(data.result.message || null)
                   // Final result - ensure all steps are updated (no need to add more)
+
+                  // Call onComplete if operation was successful and container is running
+                  if (
+                    operation === 'start' &&
+                    data.result.message?.includes('running') &&
+                    onComplete
+                  ) {
+                    onComplete()
+                  }
                 } else if (data.type === 'error') {
                   // Handle streaming error - extract the error details
                   const errorData = data.error

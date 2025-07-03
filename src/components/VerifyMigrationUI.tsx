@@ -135,7 +135,11 @@ const processContentForPreview = (content: string, mediaRefs: MediaReference[]):
   return processedContent
 }
 
-export const VerifyMigrationUI: React.FC = () => {
+interface VerifyMigrationUIProps {
+  onComplete?: () => void
+}
+
+export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete }) => {
   const [records, setRecords] = useState<MigrationRecord[]>([])
   const [filteredRecords, setFilteredRecords] = useState<MigrationRecord[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -402,6 +406,26 @@ export const VerifyMigrationUI: React.FC = () => {
               <div className="text-2xl font-bold text-red-100">{missingMedia}</div>
             </div>
           </div>
+
+          {/* Action Button */}
+          {onComplete && (
+            <div className="mb-6 flex justify-end">
+              <button
+                onClick={onComplete}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <span>Mark as Verified</span>
+              </button>
+            </div>
+          )}
 
           {/* Search and Filter Controls */}
           <div className="mb-8 bg-gray-800 rounded-lg p-6 border border-gray-700">

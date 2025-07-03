@@ -20,7 +20,11 @@ interface PostOption {
   mediaTypes: string[]
 }
 
-export const ImportToSanityUI: React.FC = () => {
+interface ImportToSanityUIProps {
+  onComplete?: () => void
+}
+
+export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }) => {
   const [isImporting, setIsImporting] = useState(false)
   const [messages, setMessages] = useState<ImportProgress[]>([])
   const [availablePosts, setAvailablePosts] = useState<PostOption[]>([])
@@ -165,6 +169,15 @@ export const ImportToSanityUI: React.FC = () => {
             try {
               const data = JSON.parse(line.slice(6))
               setMessages((prev) => [...prev, data])
+
+              // Call onComplete when import is successful
+              if (
+                data.type === 'success' &&
+                data.message?.includes('completed successfully') &&
+                onComplete
+              ) {
+                onComplete()
+              }
             } catch (e) {
               console.error('Failed to parse SSE data:', e)
             }

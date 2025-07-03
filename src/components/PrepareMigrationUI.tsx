@@ -15,7 +15,11 @@ interface MissingMediaFile {
   type: string
 }
 
-export const PrepareMigrationUI: React.FC = () => {
+interface PrepareMigrationUIProps {
+  onComplete?: () => void
+}
+
+export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -104,6 +108,11 @@ export const PrepareMigrationUI: React.FC = () => {
                   }
                   if (result.data?.missingMedia !== undefined) {
                     setMissingMedia(result.data.missingMedia)
+                  }
+
+                  // Call onComplete when migration is successful
+                  if (onComplete) {
+                    onComplete()
                   }
                 } else if (data.type === 'error') {
                   throw new Error(JSON.stringify(data.error))
