@@ -45,9 +45,10 @@ export async function GET(request: NextRequest) {
           details: {
             requestedFile: path.basename(filePath),
             searchedIn: inputDir,
-            suggestion: 'Please ensure your WordPress uploads directory is copied to input/uploads/',
-            expectedStructure: 'input/uploads/[year]/[month]/[filename]'
-          }
+            suggestion:
+              'Please ensure your WordPress uploads directory is copied to input/uploads/',
+            expectedStructure: 'input/uploads/[year]/[month]/[filename]',
+          },
         },
         { status: 404 },
       )
@@ -107,9 +108,9 @@ export async function GET(request: NextRequest) {
       {
         error: 'Failed to serve media file',
         message: error instanceof Error ? error.message : 'Unknown error',
-        suggestion: 'Check server logs for more details'
+        suggestion: 'Check server logs for more details',
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

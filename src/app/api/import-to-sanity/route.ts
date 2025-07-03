@@ -25,11 +25,11 @@ interface ImportProgress {
 async function uploadMedia(
   mediaPath: string,
   mediaType: 'image' | 'audio' | 'video',
-  maxRetries: number = 3
+  maxRetries: number = 3,
 ): Promise<string | null> {
   const absolutePath = path.resolve(mediaPath)
   const fileName = path.basename(absolutePath)
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const fileBuffer = await fs.readFile(absolutePath)
@@ -46,24 +46,29 @@ async function uploadMedia(
     } catch (error) {
       const isLastAttempt = attempt === maxRetries
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      
-      console.error(`Failed to upload media (attempt ${attempt}/${maxRetries}): ${mediaPath}`, errorMessage)
-      
+
+      console.error(
+        `Failed to upload media (attempt ${attempt}/${maxRetries}): ${mediaPath}`,
+        errorMessage,
+      )
+
       // Don't retry on certain errors
-      if (errorMessage.includes('File too large') || 
-          errorMessage.includes('Invalid file type') ||
-          errorMessage.includes('ENOENT')) {
+      if (
+        errorMessage.includes('File too large') ||
+        errorMessage.includes('Invalid file type') ||
+        errorMessage.includes('ENOENT')
+      ) {
         return null
       }
-      
+
       if (!isLastAttempt) {
         // Exponential backoff: 1s, 2s, 4s
         const delay = Math.pow(2, attempt - 1) * 1000
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
   }
-  
+
   return null
 }
 
@@ -72,15 +77,18 @@ type SanityDocumentPost = Omit<Post, '_id' | '_createdAt' | '_updatedAt' | '_rev
 type SanityDocumentPage = Omit<Page, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'pageBuilder'>
 type SanityDocument = SanityDocumentPost | SanityDocumentPage
 
-function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, string>): SanityDocument {
+function createSanityDocument(
+  record: MigrationRecord,
+  mediaAssets: Map<string, string>,
+): SanityDocument {
   const { transformed } = record
   const media = transformed.media
 
   if (transformed._type === 'post') {
     // Process the content to replace media URLs with Sanity asset references
-    const processedContent = transformed.content ? 
-      processMediaInContent(transformed.content, media, mediaAssets) : 
-      undefined
+    const processedContent = transformed.content
+      ? processMediaInContent(transformed.content, media, mediaAssets)
+      : undefined
 
     // Find the first image in content to use as cover image if needed
     const firstImageAssetId = findFirstImageAssetId(media, mediaAssets)
@@ -93,13 +101,15 @@ function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, 
       excerpt: transformed.excerpt,
       coverImage: {
         _type: 'image',
-        asset: firstImageAssetId ? {
-          _type: 'reference',
-          _ref: firstImageAssetId
-        } : undefined,
-        alt: transformed.coverImage?.alt
+        asset: firstImageAssetId
+          ? {
+              _type: 'reference',
+              _ref: firstImageAssetId,
+            }
+          : undefined,
+        alt: transformed.coverImage?.alt,
       },
-      date: transformed.date
+      date: transformed.date,
     }
     return postDoc
   } else {
@@ -109,7 +119,7 @@ function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, 
       name: transformed.name,
       slug: transformed.slug,
       heading: transformed.heading,
-      subheading: transformed.subheading
+      subheading: transformed.subheading,
     }
     return pageDoc
   }
@@ -119,9 +129,9 @@ function createSanityDocument(record: MigrationRecord, mediaAssets: Map<string, 
 function processMediaInContent(
   content: MigrationBlockContent,
   media: Array<{ type: string; url: string; localPath: string; found: boolean }>,
-  mediaAssets: Map<string, string>
+  mediaAssets: Map<string, string>,
 ): BlockContent {
-  return content.map(block => {
+  return content.map((block) => {
     if (block._type === 'image' && 'url' in block && 'localPath' in block) {
       const assetId = block.localPath ? mediaAssets.get(block.localPath) : undefined
       if (assetId) {
@@ -133,8 +143,8 @@ function processMediaInContent(
           ...imageBlock,
           asset: {
             _type: 'reference' as const,
-            _ref: assetId
-          }
+            _ref: assetId,
+          },
         }
       }
       // If no asset found, return without the temporary properties
@@ -155,9 +165,9 @@ function processMediaInContent(
             ...audioBlock.audioFile,
             asset: {
               _type: 'reference' as const,
-              _ref: assetId
-            }
-          }
+              _ref: assetId,
+            },
+          },
         }
       }
       // If no asset found, return without the temporary properties
@@ -178,9 +188,9 @@ function processMediaInContent(
 // Helper function to find first image asset for cover image
 function findFirstImageAssetId(
   media: Array<{ type: string; url: string; localPath: string; found: boolean }>,
-  mediaAssets: Map<string, string>
+  mediaAssets: Map<string, string>,
 ): string | null {
-  const firstImage = media?.find(m => m.type === 'image' && m.found)
+  const firstImage = media?.find((m) => m.type === 'image' && m.found)
   if (firstImage) {
     return mediaAssets.get(firstImage.localPath) || null
   }
@@ -361,7 +371,10 @@ export async function POST(request: NextRequest) {
                 _type: sanityDoc._type,
                 title: sanityDoc._type === 'post' ? sanityDoc.title : sanityDoc.name,
                 slug: sanityDoc.slug.current,
-                hasContent: sanityDoc._type === 'post' ? !!sanityDoc.content && sanityDoc.content.length > 0 : false,
+                hasContent:
+                  sanityDoc._type === 'post'
+                    ? !!sanityDoc.content && sanityDoc.content.length > 0
+                    : false,
                 contentBlocks: sanityDoc._type === 'post' ? sanityDoc.content?.length || 0 : 0,
                 hasExcerpt: sanityDoc._type === 'post' ? !!sanityDoc.excerpt : false,
                 hasCoverImage: sanityDoc._type === 'post' ? !!sanityDoc.coverImage.asset : false,

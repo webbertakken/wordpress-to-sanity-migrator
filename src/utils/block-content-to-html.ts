@@ -1,6 +1,8 @@
 import type { ExtendedBlockContent, MigrationBlockContent } from '../types/migration'
 
-export function blockContentToHtml(blocks: ExtendedBlockContent | MigrationBlockContent | undefined): string {
+export function blockContentToHtml(
+  blocks: ExtendedBlockContent | MigrationBlockContent | undefined,
+): string {
   if (!blocks || !Array.isArray(blocks)) {
     return ''
   }
@@ -41,13 +43,13 @@ export function blockContentToHtml(blocks: ExtendedBlockContent | MigrationBlock
         }
         const src = audioBlock.localPath || audioBlock.url || ''
         const title = audioBlock.title || ''
-        
+
         if (src) {
           // If it's a local path, convert to API URL for preview
           const audioSrc = src.startsWith('input/')
             ? `/api/serve-media?path=${encodeURIComponent(src)}`
             : src
-          
+
           return `<figure class="audio-block">
             <audio controls${audioBlock.autoplay ? ' autoplay' : ''}>
               <source src="${audioSrc}" type="audio/wav">

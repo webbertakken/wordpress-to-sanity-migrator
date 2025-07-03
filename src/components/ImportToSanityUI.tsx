@@ -78,7 +78,12 @@ export const ImportToSanityUI: React.FC = () => {
           const media = record.transformed?.media
           const hasMedia = media && Array.isArray(media) && media.length > 0
           if (!hasMedia) {
-            console.log('Filtered out record:', getContentTitle(record.transformed), 'media:', media)
+            console.log(
+              'Filtered out record:',
+              getContentTitle(record.transformed),
+              'media:',
+              media,
+            )
           }
           return hasMedia
         })

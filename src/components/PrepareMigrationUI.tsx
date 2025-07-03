@@ -127,7 +127,7 @@ export const PrepareMigrationUI: React.FC = () => {
     <div className="p-8">
       <h2 className="text-2xl font-bold mb-4">Prepare Migration</h2>
       <p className="mb-6">Run the migration preparation script and generate the migration data.</p>
-      
+
       {/* Migration Options */}
       <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-700">
         <h3 className="text-lg font-semibold text-gray-100 mb-3">Migration Options</h3>
@@ -145,8 +145,8 @@ export const PrepareMigrationUI: React.FC = () => {
           </label>
         </div>
         <div className="mt-2 text-xs text-gray-400">
-          When enabled, WordPress pages will be converted to Sanity posts instead of pages. 
-          This is useful if you want all content to be treated as blog posts.
+          When enabled, WordPress pages will be converted to Sanity posts instead of pages. This is
+          useful if you want all content to be treated as blog posts.
         </div>
       </div>
 

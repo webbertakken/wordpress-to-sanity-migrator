@@ -5,7 +5,7 @@ import type {
   SanityContent,
   ExtendedBlockContent,
   MediaReference,
-  MigrationBlockContent
+  MigrationBlockContent,
 } from '../types/migration'
 import { htmlToBlockContent } from '../utils/html-to-portable-text'
 import { extractMediaFromContent, mapMediaToLocalPaths } from '../utils/media-processor'
@@ -37,28 +37,35 @@ export class SanityContentTransformer {
   static async toSanityPost(wordpressContent: WordPressPost): Promise<SanityPostContent> {
     let content: MigrationBlockContent
     let media: MediaReference[]
-    
+
     try {
       // Convert HTML to BlockContent and extract media
       const result = await htmlToBlockContent(wordpressContent.post_content)
       content = result.content
       media = result.media
     } catch (error) {
-      console.error(`Failed to convert HTML for post "${wordpressContent.post_title}" (ID: ${wordpressContent.ID}):`, error)
+      console.error(
+        `Failed to convert HTML for post "${wordpressContent.post_title}" (ID: ${wordpressContent.ID}):`,
+        error,
+      )
       // Return minimal content on error
-      content = [{
-        _type: 'block',
-        _key: nanoid(),
-        style: 'normal',
-        children: [{
-          _type: 'span',
+      content = [
+        {
+          _type: 'block',
           _key: nanoid(),
-          text: wordpressContent.post_content ? 
-            stripHtml(wordpressContent.post_content).substring(0, 500) + '...' : 
-            'Content conversion failed'
-        }],
-        markDefs: []
-      }]
+          style: 'normal',
+          children: [
+            {
+              _type: 'span',
+              _key: nanoid(),
+              text: wordpressContent.post_content
+                ? stripHtml(wordpressContent.post_content).substring(0, 500) + '...'
+                : 'Content conversion failed',
+            },
+          ],
+          markDefs: [],
+        },
+      ]
       media = []
     }
 
@@ -71,7 +78,7 @@ export class SanityContentTransformer {
       slug: {
         _type: 'slug',
         current: wordpressContent.post_name,
-        source: 'title'
+        source: 'title',
       },
       content,
       excerpt: wordpressContent.post_excerpt || undefined,
@@ -79,11 +86,11 @@ export class SanityContentTransformer {
         _type: 'image',
         alt: `Cover image for ${wordpressContent.post_title}`,
         // Asset will be set later if a featured image is found
-        asset: undefined
+        asset: undefined,
       },
       date: wordpressContent.post_date,
       media,
-      body: bodyText
+      body: bodyText,
     }
   }
 
@@ -102,11 +109,11 @@ export class SanityContentTransformer {
       slug: {
         _type: 'slug',
         current: wordpressPage.post_name,
-        source: 'name'
+        source: 'name',
       },
       heading: wordpressPage.post_title,
       subheading: wordpressPage.post_excerpt || undefined,
-      media: mappedMedia
+      media: mappedMedia,
     }
   }
 
@@ -116,7 +123,7 @@ export class SanityContentTransformer {
    */
   static async transform(
     wordpressContent: WordPressPost,
-    options?: { treatAsPost?: boolean }
+    options?: { treatAsPost?: boolean },
   ): Promise<SanityContent> {
     const shouldTreatAsPost = wordpressContent.post_type === 'post' || options?.treatAsPost
 
@@ -146,18 +153,18 @@ export class SanityContentTransformer {
       slug: {
         _type: 'slug',
         current: data.slug,
-        source: 'title'
+        source: 'title',
       },
       content: data.content,
       excerpt: data.excerpt,
       coverImage: {
         _type: 'image',
         alt: `Cover image for ${data.title}`,
-        asset: undefined
+        asset: undefined,
       },
       date: data.date,
       media: data.media || [],
-      body: data.body
+      body: data.body,
     }
   }
 
@@ -165,19 +172,19 @@ export class SanityContentTransformer {
    * Extracts plain text from block content for the body field.
    * This is useful for search indexing and previews.
    */
-  private static extractPlainTextFromContent(blocks?: MigrationBlockContent | ExtendedBlockContent): string {
+  private static extractPlainTextFromContent(
+    blocks?: MigrationBlockContent | ExtendedBlockContent,
+  ): string {
     if (!blocks || blocks.length === 0) return ''
 
     return blocks
-      .map(block => {
+      .map((block) => {
         if (block._type === 'block' && block.children) {
-          return block.children
-            .map(child => child.text || '')
-            .join('')
+          return block.children.map((child) => child.text || '').join('')
         }
         return ''
       })
-      .filter(text => text.length > 0)
+      .filter((text) => text.length > 0)
       .join(' ')
       .trim()
   }
@@ -195,10 +202,10 @@ export class SanityContentTransformer {
       total: content.media.length,
       byType: {} as Record<string, number>,
       found: 0,
-      missing: 0
+      missing: 0,
     }
 
-    content.media.forEach(item => {
+    content.media.forEach((item) => {
       summary.byType[item.type] = (summary.byType[item.type] || 0) + 1
       if (item.found) {
         summary.found++
@@ -214,9 +221,7 @@ export class SanityContentTransformer {
    * Gets all media URLs that are missing (not found locally).
    */
   static getMissingMediaUrls(content: SanityContent): string[] {
-    return content.media
-      .filter(item => !item.found)
-      .map(item => item.url)
+    return content.media.filter((item) => !item.found).map((item) => item.url)
   }
 
   /**
@@ -231,7 +236,8 @@ export class SanityContentTransformer {
    */
   static getWordCount(content: SanityContent): number {
     if (content._type === 'post') {
-      const text = content.body || SanityContentTransformer.extractPlainTextFromContent(content.content)
+      const text =
+        content.body || SanityContentTransformer.extractPlainTextFromContent(content.content)
       return text.split(/\s+/).filter((word: string) => word.length > 0).length
     }
     // Pages don't have body or content fields in our schema

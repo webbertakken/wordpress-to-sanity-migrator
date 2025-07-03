@@ -2,7 +2,12 @@
 import { JSDOM } from 'jsdom'
 import { nanoid } from 'nanoid'
 import { extractMediaFromContent, mapMediaToLocalPaths } from '../media-processor'
-import type { MediaReference, MigrationBlockContent, MigrationAudioBlock, MigrationImageBlock } from '../../types/migration'
+import type {
+  MediaReference,
+  MigrationBlockContent,
+  MigrationAudioBlock,
+  MigrationImageBlock,
+} from '../../types/migration'
 
 // Create a single JSDOM instance to reuse across tests
 let cachedJSDOM: typeof JSDOM | null = null
@@ -21,45 +26,47 @@ export async function testHtmlToBlockContent(
   // First extract and map media references
   const mediaRefs = extractMediaFromContent(html)
   const mappedMedia = mapMediaToLocalPaths(mediaRefs)
-  
+
   // Create a map of URLs to media references for quick lookup
   const mediaMap = new Map<string, MediaReference>()
   mappedMedia.forEach((ref) => {
     mediaMap.set(ref.url, ref)
   })
-  
+
   // Use cached JSDOM
   const JSDOM = await getJSDOM()
   const dom = new JSDOM(html)
   const doc = dom.window.document
   const body = doc.body
-  
+
   const blocks: MigrationBlockContent = []
-  
+
   // Simplified processing for tests - just handle the main cases
   body.querySelectorAll('p, figure, audio, img').forEach((element) => {
     const tagName = element.tagName.toLowerCase()
-    
+
     switch (tagName) {
       case 'p':
         blocks.push({
           _type: 'block',
           _key: nanoid(),
           style: 'normal',
-          children: [{
-            _type: 'span',
-            _key: nanoid(),
-            text: element.textContent || '',
-          }],
+          children: [
+            {
+              _type: 'span',
+              _key: nanoid(),
+              text: element.textContent || '',
+            },
+          ],
           markDefs: [],
         })
         break
-        
+
       case 'figure':
         const audio = element.querySelector('audio')
         const img = element.querySelector('img')
         const figcaption = element.querySelector('figcaption')
-        
+
         if (audio) {
           const src = audio.getAttribute('src')
           if (src) {
@@ -91,7 +98,7 @@ export async function testHtmlToBlockContent(
           }
         }
         break
-        
+
       case 'audio':
         const src = element.getAttribute('src')
         if (src) {
@@ -109,7 +116,7 @@ export async function testHtmlToBlockContent(
           blocks.push(audioBlock)
         }
         break
-        
+
       case 'img':
         const imgSrc = element.getAttribute('src')
         if (imgSrc) {
@@ -125,6 +132,6 @@ export async function testHtmlToBlockContent(
         break
     }
   })
-  
+
   return { content: blocks, media: mappedMedia }
 }

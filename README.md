@@ -1,10 +1,13 @@
 # WordPress to Sanity Migrator
 
-A visual interface for migrating content from WordPress to Sanity CMS. This application streamlines the migration process with database extraction, media processing, content transformation, and visual verification.
+A visual interface for migrating content from WordPress to Sanity CMS. This application streamlines
+the migration process with database extraction, media processing, content transformation, and visual
+verification.
 
 ## Features
 
-- **Docker Container Management**: Start/stop WordPress database container with ingested backup through the UI
+- **Docker Container Management**: Start/stop WordPress database container with ingested backup
+  through the UI
 - **Database Extraction**: Connect to WordPress MySQL databases and extract posts, pages, and media
 - **Content Transformation**: Automatically convert WordPress content to Sanity-compatible format
 - **Media Processing**: Track and map media references with support for images, audio, and video
@@ -30,12 +33,14 @@ yarn dev
 ### 1. Prepare Your WordPress Data
 
 Place your WordPress data in the `/input` directory:
+
 - Database backup: `/input/backup.sql`
 - Media files: `/input/uploads/` (maintain WordPress year/month structure)
 
 ### 2. Start Docker Container
 
 Use the Docker Manager UI to start a MySQL container:
+
 - Navigate to the Docker Management section
 - Click "Start Container" to run WordPress database on localhost:3306
 
@@ -95,6 +100,7 @@ yarn start
 ## Configuration
 
 The application expects a WordPress MySQL database with these default settings:
+
 - Host: `localhost`
 - Port: `3306`
 - Database: `mydatabase`
@@ -143,6 +149,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 Built with:
+
 - [Next.js 15](https://nextjs.org/) - React framework
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
@@ -151,4 +158,5 @@ Built with:
 
 ## Support
 
-For issues, questions, or contributions, please use the [GitHub Issues](https://github.com/webbertakken/wordpress-to-sanity-migrator/issues) page.
+For issues, questions, or contributions, please use the
+[GitHub Issues](https://github.com/webbertakken/wordpress-to-sanity-migrator/issues) page.

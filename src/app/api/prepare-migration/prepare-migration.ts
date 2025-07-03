@@ -2,11 +2,7 @@ import * as mysql2 from 'mysql2/promise'
 import * as fs from 'fs'
 import * as path from 'path'
 import { RowDataPacket } from 'mysql2'
-import type {
-  WordPressPost,
-  MigrationRecord,
-  MigrationOptions,
-} from '../../../types/migration'
+import type { WordPressPost, MigrationRecord, MigrationOptions } from '../../../types/migration'
 import { generateMediaStats } from '../../../utils/media-processor'
 import { SanityContentTransformer } from '../../../domain/sanity-content-transformer'
 
@@ -121,7 +117,8 @@ export async function prepareMigration(
     for (let i = 0; i < typedContent.length; i++) {
       const item = typedContent[i]
       const progressPercent = 30 + Math.floor((i / typedContent.length) * 40)
-      const targetType = (options?.parsePagesAsPosts && item.post_type === 'page') ? 'page (as post)' : item.post_type
+      const targetType =
+        options?.parsePagesAsPosts && item.post_type === 'page' ? 'page (as post)' : item.post_type
       onProgress?.({
         step: 'processing-item',
         message: `Processing ${targetType}: ${item.post_title}`,
@@ -143,9 +140,9 @@ export async function prepareMigration(
 
       // Use the unified transformer
       const sanityContent = await SanityContentTransformer.transform(item, {
-        treatAsPost: options?.parsePagesAsPosts
+        treatAsPost: options?.parsePagesAsPosts,
       })
-      
+
       const mappedMediaRefs = sanityContent.media
 
       // Generate stats for this item
