@@ -8,7 +8,15 @@
       "Bash(yarn:*)",
       "Bash(rm:*)",
       "Bash(git add:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx eslint:*)",
+      "Bash(find:*)",
+      "Bash(touch:*)",
+      "Bash(bun test:*)",
+      "Bash(npx tsx:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

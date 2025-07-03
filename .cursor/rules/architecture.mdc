@@ -1,3 +1,8 @@
+---
+description: Architecture
+globs:
+alwaysApply: true
+---
 # Visual Migrator Architecture
 
 ## System Overview

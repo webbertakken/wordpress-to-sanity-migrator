@@ -11,8 +11,11 @@ interface DockerStep {
   info?: boolean
 }
 
+interface DockerManagerUIProps {
+  onComplete?: () => void
+}
 
-export const DockerManagerUI: React.FC = () => {
+export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -34,6 +37,28 @@ export const DockerManagerUI: React.FC = () => {
       })
 
       if (!response.ok) {
+        // Try to parse error response body
+        try {
+          const errorData = await response.json()
+          if (errorData.error && errorData.details) {
+            // This is a structured error from our API
+            setError(
+              JSON.stringify(
+                {
+                  message: errorData.error,
+                  details: errorData.details,
+                },
+                null,
+                2,
+              ),
+            )
+            setLoading(false)
+            return
+          }
+        } catch {
+          // Failed to parse as JSON, fall through to generic error
+        }
+
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
@@ -57,17 +82,17 @@ export const DockerManagerUI: React.FC = () => {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6))
-                
+
                 if (data.type === 'status') {
                   console.log('Status:', data.message)
                 } else if (data.type === 'step') {
-                  setSteps(prev => {
+                  setSteps((prev) => {
                     const newSteps = [...prev]
                     // Check if this step already exists (by comparing step name and cmd)
-                    const existingIndex = newSteps.findIndex(s => 
-                      s.step === data.step.step && s.cmd === data.step.cmd
+                    const existingIndex = newSteps.findIndex(
+                      (s) => s.step === data.step.step && s.cmd === data.step.cmd,
                     )
-                    
+
                     if (existingIndex >= 0) {
                       // Update existing step
                       newSteps[existingIndex] = data.step
@@ -80,8 +105,30 @@ export const DockerManagerUI: React.FC = () => {
                 } else if (data.type === 'result') {
                   setResult(data.result.message || null)
                   // Final result - ensure all steps are updated (no need to add more)
+
+                  // Call onComplete if operation was successful and container is running
+                  if (
+                    operation === 'start' &&
+                    data.result.message?.includes('running') &&
+                    onComplete
+                  ) {
+                    onComplete()
+                  }
                 } else if (data.type === 'error') {
-                  throw new Error(JSON.stringify(data.error))
+                  // Handle streaming error - extract the error details
+                  const errorData = data.error
+                  if (errorData && typeof errorData === 'object') {
+                    setError(
+                      JSON.stringify({
+                        message: errorData.error || 'An error occurred',
+                        details: errorData.details || {},
+                      }),
+                    )
+                    // Don't throw, just return to stop processing
+                    return
+                  } else {
+                    throw new Error(JSON.stringify(data.error))
+                  }
                 }
               } catch (parseError) {
                 console.warn('Failed to parse SSE data:', line, parseError)
@@ -134,10 +181,10 @@ export const DockerManagerUI: React.FC = () => {
     const isNoSuchContainer =
       (step.stderr && step.stderr.includes('No such container')) || step.info
     const isRunning = !step.stdout && !step.stderr && !step.success
-    
+
     let statusLabel: string
     let statusClass: string
-    
+
     if (isRunning) {
       statusLabel = 'Running...'
       statusClass = 'bg-yellow-900/50 text-yellow-300'
@@ -155,12 +202,12 @@ export const DockerManagerUI: React.FC = () => {
       <div key={index} className="mb-6 border border-gray-700 rounded-lg overflow-hidden">
         <div
           className={`p-4 ${
-            isRunning 
-              ? 'bg-yellow-900/20' 
-              : isNoSuchContainer 
-                ? 'bg-blue-900/20' 
-                : step.success 
-                  ? 'bg-gray-800' 
+            isRunning
+              ? 'bg-yellow-900/20'
+              : isNoSuchContainer
+                ? 'bg-blue-900/20'
+                : step.success
+                  ? 'bg-gray-800'
                   : 'bg-red-900/50'
           }`}
         >
@@ -168,9 +215,25 @@ export const DockerManagerUI: React.FC = () => {
             <h3 className="text-lg font-semibold">{step.step}</h3>
             <span className={`px-2 py-1 rounded text-sm ${statusClass} flex items-center gap-1`}>
               {isRunning && (
-                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-3 w-3"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
               )}
               {statusLabel}
@@ -244,18 +307,27 @@ export const DockerManagerUI: React.FC = () => {
                   )
                   return (
                     <>
-                      <p className="text-red-200">{errorData.message}</p>
+                      <p className="text-red-200 text-lg">{errorData.message}</p>
                       {details.guidance && (
                         <div className="mt-4">
-                          <h3 className="text-lg font-semibold text-red-300 mb-2">
-                            Troubleshooting Steps:
-                          </h3>
-                          <div className="bg-gray-900/50 p-4 rounded text-sm text-gray-300">
-                            {details.guidance.split('\n').map((line: string, index: number) => (
-                              <p key={index} className="mb-2">
-                                {line}
-                              </p>
-                            ))}
+                          <div className="bg-yellow-900/50 border border-yellow-700 rounded p-4">
+                            <h3 className="text-lg font-semibold text-yellow-300 mb-2 flex items-center">
+                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              What to do:
+                            </h3>
+                            <div className="text-yellow-100">
+                              {details.guidance.split('\n').map((line: string, index: number) => (
+                                <p key={index} className="mb-2">
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -266,12 +338,14 @@ export const DockerManagerUI: React.FC = () => {
                           </h3>
                           <div className="bg-gray-900/50 p-4 rounded text-sm text-gray-300">
                             {details.stack && details.stack.trim() && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Error Stack:</h4>
-                                <div className="whitespace-pre-wrap">
-                                  {details.stack.split('\n').slice(0, 3).join('\n')}
+                              <details className="mb-4">
+                                <summary className="font-semibold mb-2 cursor-pointer">
+                                  Error Stack
+                                </summary>
+                                <div className="whitespace-pre-wrap mt-2 text-xs">
+                                  {details.stack}
                                 </div>
-                              </div>
+                              </details>
                             )}
                             {details.cwd && details.cwd.trim() && (
                               <div className="mb-4">

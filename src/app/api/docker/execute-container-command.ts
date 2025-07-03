@@ -150,7 +150,44 @@ export async function executeContainerCommand(
         if (!isSuccess) return { success: false, error: 'Failed to start container', steps }
       } catch (err: unknown) {
         updateStep(startIndex, err as Error, false)
-        return { success: false, error: 'Failed to start container', steps }
+
+        // Provide specific error messages based on the error
+        let errorMessage = 'Failed to start container'
+        let errorDetails: unknown = getErrorDetails(err)
+
+        if (err instanceof Error) {
+          const errMsg = err.message?.toLowerCase() || ''
+          const dockerError = err as DockerError
+          const stderr = dockerError.stderr?.toLowerCase() || ''
+
+          if (
+            stderr.includes('bind: address already in use') ||
+            errMsg.includes('port is already allocated')
+          ) {
+            errorMessage = 'Port 3306 is already in use'
+            errorDetails = {
+              ...(typeof errorDetails === 'object' && errorDetails !== null ? errorDetails : {}),
+              guidance:
+                'Another application or container is already using port 3306.\n' +
+                'Please stop any existing MySQL/MariaDB services or containers.\n' +
+                "You can check what's using the port with: lsof -i :3306 (on Mac/Linux) or netstat -ano | findstr :3306 (on Windows)",
+            }
+          } else if (stderr.includes('conflict') && stderr.includes('name')) {
+            errorMessage = 'Container with this name already exists'
+            errorDetails = {
+              ...(typeof errorDetails === 'object' && errorDetails !== null ? errorDetails : {}),
+              guidance:
+                'A container named "' +
+                CONTAINER_NAME +
+                '" already exists.\n' +
+                'Try stopping the migration first, or remove the existing container with:\n' +
+                'docker rm -f ' +
+                CONTAINER_NAME,
+            }
+          }
+        }
+
+        return { success: false, error: errorMessage, details: errorDetails, steps }
       }
       // 2. Wait for MariaDB to initialize
       const waitIndex = pushInitialStep('Wait for MariaDB to initialize', 'sleep 12s')
