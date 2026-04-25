@@ -11,7 +11,7 @@ describe('Audio Block Conversion', () => {
       const wordpressHtml = `
         <!-- wp:audio {"id":3344} -->
         <figure class="wp-block-audio">
-          <audio controls src="http://bert.webbink.eu/wp-content/uploads/2023/03/08-Rolde-Jacobuskerk-Ab.wav"></audio>
+          <audio controls src="http://example.com/wp-content/uploads/2023/03/sample.wav"></audio>
         </figure>
         <!-- /wp:audio -->
       `
@@ -29,7 +29,7 @@ describe('Audio Block Conversion', () => {
       if (audioBlock && audioBlock._type === 'audio') {
         const migrationAudioBlock = audioBlock as MigrationAudioBlock
         expect(migrationAudioBlock.url).toBe(
-          'http://bert.webbink.eu/wp-content/uploads/2023/03/08-Rolde-Jacobuskerk-Ab.wav',
+          'http://example.com/wp-content/uploads/2023/03/sample.wav',
         )
         expect(migrationAudioBlock.showControls).toBe(true)
         expect(migrationAudioBlock.autoplay).toBe(false)
@@ -42,7 +42,7 @@ describe('Audio Block Conversion', () => {
       const audioMedia = result.media.find((m) => m.type === 'audio')
       expect(audioMedia).toBeDefined()
       expect(audioMedia?.url).toBe(
-        'http://bert.webbink.eu/wp-content/uploads/2023/03/08-Rolde-Jacobuskerk-Ab.wav',
+        'http://example.com/wp-content/uploads/2023/03/sample.wav',
       )
     })
 
