@@ -26,6 +26,55 @@ export default function Home() {
     localStorage.setItem('completedMigrationSteps', JSON.stringify(Array.from(completedSteps)))
   }, [completedSteps])
 
+  // Auto-detect step completion from live system state.
+  // Re-runs on mount and whenever the window regains focus, so a step lights
+  // up green as soon as its underlying condition is true (e.g. Docker
+  // container running, all Sanity prerequisites met).
+  useEffect(() => {
+    let cancelled = false
+
+    const markIfNot = (stepIndex: number) => {
+      setCompletedSteps((prev) => {
+        if (prev.has(stepIndex)) return prev
+        const next = new Set(prev)
+        next.add(stepIndex)
+        return next
+      })
+    }
+
+    const detect = async () => {
+      // Step 0: Docker container running
+      try {
+        const r = await fetch('/api/docker/container-running')
+        if (!cancelled && r.ok) {
+          const data = (await r.json()) as { running?: boolean }
+          if (data.running) markIfNot(0)
+        }
+      } catch {
+        // ignore — leave step un-marked
+      }
+
+      // Step 3: Sanity prerequisites all met
+      try {
+        const r = await fetch('/api/check-sanity-prerequisites')
+        if (!cancelled && r.ok) {
+          const data = (await r.json()) as { allOk?: boolean }
+          if (data.allOk) markIfNot(3)
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    detect()
+    const onFocus = () => detect()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [])
+
   const markStepCompleted = (stepIndex: number) => {
     setCompletedSteps((prev) => new Set(prev).add(stepIndex))
   }
