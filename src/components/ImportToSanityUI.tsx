@@ -20,6 +20,18 @@ interface PostOption {
   mediaTypes: string[]
 }
 
+interface PrerequisiteCheck {
+  id: 'projectId' | 'writeToken' | 'postSchema'
+  label: string
+  ok: boolean
+  detail?: string
+}
+
+interface PrerequisitesResponse {
+  checks: PrerequisiteCheck[]
+  allOk: boolean
+}
+
 interface ImportToSanityUIProps {
   onComplete?: () => void
 }
@@ -33,10 +45,37 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
   const [importMode, setImportMode] = useState<'single' | 'all'>('single')
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [prereqs, setPrereqs] = useState<PrerequisitesResponse | null>(null)
+  const [prereqsLoading, setPrereqsLoading] = useState(true)
 
   useEffect(() => {
     loadAvailablePosts()
+    checkPrerequisites()
   }, [])
+
+  const checkPrerequisites = async () => {
+    try {
+      setPrereqsLoading(true)
+      const response = await fetch('/api/check-sanity-prerequisites')
+      const data = (await response.json()) as PrerequisitesResponse
+      setPrereqs(data)
+    } catch (error) {
+      console.error('Failed to check prerequisites:', error)
+      setPrereqs({
+        checks: [
+          {
+            id: 'projectId',
+            label: 'Failed to reach prerequisite check endpoint',
+            ok: false,
+            detail: error instanceof Error ? error.message : String(error),
+          },
+        ],
+        allOk: false,
+      })
+    } finally {
+      setPrereqsLoading(false)
+    }
+  }
 
   const loadAvailablePosts = async () => {
     try {
@@ -366,23 +405,73 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
         </div>
       </div>
 
-      {/* Environment Check */}
-      <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-4 mb-6">
-        <h4 className="text-sm font-semibold text-yellow-300 mb-2">⚠️ Prerequisites</h4>
-        <ul className="text-sm text-yellow-200 space-y-1">
-          <li>• Set NEXT_PUBLIC_SANITY_PROJECT_ID in your environment</li>
-          <li>• Set SANITY_API_WRITE_TOKEN with write permissions</li>
-          <li>• Ensure your Sanity project has a &apos;post&apos; schema</li>
-        </ul>
-      </div>
+      {/* Prerequisites Check (auto-detected) */}
+      {(() => {
+        const allOk = prereqs?.allOk === true
+        const boxClass = prereqsLoading
+          ? 'bg-gray-800 border-gray-600/50'
+          : allOk
+            ? 'bg-green-900/30 border-green-600/50'
+            : 'bg-yellow-900/30 border-yellow-600/50'
+        const headingClass = prereqsLoading
+          ? 'text-gray-300'
+          : allOk
+            ? 'text-green-300'
+            : 'text-yellow-300'
+        const headingText = prereqsLoading
+          ? '⏳ Checking prerequisites…'
+          : allOk
+            ? '✅ All prerequisites met'
+            : '⚠️ Prerequisites'
+
+        return (
+          <div className={`${boxClass} border rounded-lg p-4 mb-6`}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={`text-sm font-semibold ${headingClass}`}>{headingText}</h4>
+              {!prereqsLoading && (
+                <button
+                  onClick={checkPrerequisites}
+                  className="text-xs text-gray-400 hover:text-gray-200 underline"
+                >
+                  Re-check
+                </button>
+              )}
+            </div>
+            <ul className="text-sm space-y-1">
+              {(prereqs?.checks ?? []).map((check) => (
+                <li key={check.id} className="flex items-start gap-2">
+                  <span
+                    className={`mt-0.5 flex-shrink-0 ${
+                      check.ok ? 'text-green-400' : 'text-red-400'
+                    }`}
+                    aria-label={check.ok ? 'pass' : 'fail'}
+                  >
+                    {check.ok ? '✅' : '❌'}
+                  </span>
+                  <div className="flex-1">
+                    <p className={check.ok ? 'text-green-200' : 'text-yellow-200'}>{check.label}</p>
+                    {check.detail && <p className="text-xs text-gray-400 mt-0.5">{check.detail}</p>}
+                  </div>
+                </li>
+              ))}
+              {prereqsLoading && !prereqs && (
+                <li className="text-gray-400">Detecting environment…</li>
+              )}
+            </ul>
+          </div>
+        )
+      })()}
 
       {/* Import Button */}
       <button
         onClick={startImport}
-        disabled={isImporting}
+        disabled={isImporting || prereqs?.allOk === false}
+        title={
+          prereqs?.allOk === false ? 'Resolve the prerequisites above before importing' : undefined
+        }
         className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-          isImporting
-            ? 'bg-gray-400 cursor-not-allowed text-white'
+          isImporting || prereqs?.allOk === false
+            ? 'bg-gray-500 cursor-not-allowed text-white opacity-60'
             : testMode
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
               : 'bg-green-600 hover:bg-green-700 text-white'
