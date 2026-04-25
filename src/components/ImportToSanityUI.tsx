@@ -257,6 +257,63 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
     <div className="p-8">
       <h2 className="text-2xl font-bold mb-6 text-gray-100">Import to Sanity</h2>
 
+      {/* Prerequisites Check (auto-detected) */}
+      {(() => {
+        const allOk = prereqs?.allOk === true
+        const boxClass = prereqsLoading
+          ? 'bg-gray-800 border-gray-600/50'
+          : allOk
+            ? 'bg-green-900/30 border-green-600/50'
+            : 'bg-yellow-900/30 border-yellow-600/50'
+        const headingClass = prereqsLoading
+          ? 'text-gray-300'
+          : allOk
+            ? 'text-green-300'
+            : 'text-yellow-300'
+        const headingText = prereqsLoading
+          ? '⏳ Checking prerequisites…'
+          : allOk
+            ? '✅ All prerequisites met'
+            : '⚠️ Prerequisites'
+
+        return (
+          <div className={`${boxClass} border rounded-lg p-4 mb-6`}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={`text-sm font-semibold ${headingClass}`}>{headingText}</h4>
+              {!prereqsLoading && (
+                <button
+                  onClick={checkPrerequisites}
+                  className="text-xs text-gray-400 hover:text-gray-200 underline"
+                >
+                  Re-check
+                </button>
+              )}
+            </div>
+            <ul className="text-sm space-y-1">
+              {(prereqs?.checks ?? []).map((check) => (
+                <li key={check.id} className="flex items-start gap-2">
+                  <span
+                    className={`mt-0.5 flex-shrink-0 ${
+                      check.ok ? 'text-green-400' : 'text-red-400'
+                    }`}
+                    aria-label={check.ok ? 'pass' : 'fail'}
+                  >
+                    {check.ok ? '✅' : '❌'}
+                  </span>
+                  <div className="flex-1">
+                    <p className={check.ok ? 'text-green-200' : 'text-yellow-200'}>{check.label}</p>
+                    {check.detail && <p className="text-xs text-gray-400 mt-0.5">{check.detail}</p>}
+                  </div>
+                </li>
+              ))}
+              {prereqsLoading && !prereqs && (
+                <li className="text-gray-400">Detecting environment…</li>
+              )}
+            </ul>
+          </div>
+        )
+      })()}
+
       {/* Configuration Section */}
       <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
         <h3 className="text-lg font-semibold mb-4 text-gray-100">Import Configuration</h3>
@@ -404,63 +461,6 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
           </div>
         </div>
       </div>
-
-      {/* Prerequisites Check (auto-detected) */}
-      {(() => {
-        const allOk = prereqs?.allOk === true
-        const boxClass = prereqsLoading
-          ? 'bg-gray-800 border-gray-600/50'
-          : allOk
-            ? 'bg-green-900/30 border-green-600/50'
-            : 'bg-yellow-900/30 border-yellow-600/50'
-        const headingClass = prereqsLoading
-          ? 'text-gray-300'
-          : allOk
-            ? 'text-green-300'
-            : 'text-yellow-300'
-        const headingText = prereqsLoading
-          ? '⏳ Checking prerequisites…'
-          : allOk
-            ? '✅ All prerequisites met'
-            : '⚠️ Prerequisites'
-
-        return (
-          <div className={`${boxClass} border rounded-lg p-4 mb-6`}>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className={`text-sm font-semibold ${headingClass}`}>{headingText}</h4>
-              {!prereqsLoading && (
-                <button
-                  onClick={checkPrerequisites}
-                  className="text-xs text-gray-400 hover:text-gray-200 underline"
-                >
-                  Re-check
-                </button>
-              )}
-            </div>
-            <ul className="text-sm space-y-1">
-              {(prereqs?.checks ?? []).map((check) => (
-                <li key={check.id} className="flex items-start gap-2">
-                  <span
-                    className={`mt-0.5 flex-shrink-0 ${
-                      check.ok ? 'text-green-400' : 'text-red-400'
-                    }`}
-                    aria-label={check.ok ? 'pass' : 'fail'}
-                  >
-                    {check.ok ? '✅' : '❌'}
-                  </span>
-                  <div className="flex-1">
-                    <p className={check.ok ? 'text-green-200' : 'text-yellow-200'}>{check.label}</p>
-                    {check.detail && <p className="text-xs text-gray-400 mt-0.5">{check.detail}</p>}
-                  </div>
-                </li>
-              ))}
-              {prereqsLoading && !prereqs && (
-                <li className="text-gray-400">Detecting environment…</li>
-              )}
-            </ul>
-          </div>
-        )
-      })()}
 
       {/* Import Button */}
       <button
