@@ -796,6 +796,43 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                             max-width: 100%;
                             margin: 1rem 0;
                           }
+                          /* Figure captions sit directly under the media. */
+                          .preview-content figure {
+                            margin: 1rem 0;
+                          }
+                          .preview-content figcaption {
+                            margin-top: 0.4em;
+                            text-align: center;
+                            font-size: 0.875em;
+                            color: #4b5563;
+                          }
+                          /* Image alignment — mirrors WordPress's align classes. */
+                          .preview-content figure[data-align='left'] {
+                            float: left;
+                            margin: 0.5rem 1rem 1rem 0;
+                            max-width: 50%;
+                          }
+                          .preview-content figure[data-align='right'] {
+                            float: right;
+                            margin: 0.5rem 0 1rem 1rem;
+                            max-width: 50%;
+                          }
+                          .preview-content figure[data-align='center'] {
+                            margin-left: auto;
+                            margin-right: auto;
+                          }
+                          /* Divider blocks render as a thin horizontal rule. */
+                          .preview-content hr {
+                            border: 0;
+                            border-top: 1px solid #d1d5db;
+                            margin: 2rem 0;
+                          }
+                          /* Generic third-party embeds. */
+                          .preview-content .embed-block iframe {
+                            width: 100%;
+                            min-height: 360px;
+                            border: 0;
+                          }
                         `,
                             }}
                           />

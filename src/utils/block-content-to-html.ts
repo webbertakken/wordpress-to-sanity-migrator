@@ -17,9 +17,12 @@ export function blockContentToHtml(
           url?: string
           alt?: string
           caption?: string
+          alignment?: 'left' | 'center' | 'right'
         }
         const src = imageBlock.localPath || imageBlock.url || ''
-        const alt = imageBlock.alt || imageBlock.caption || ''
+        const alt = imageBlock.alt || ''
+        const caption = imageBlock.caption || ''
+        const alignment = imageBlock.alignment
 
         if (src) {
           // If it's a local path, convert to API URL for preview
@@ -27,9 +30,29 @@ export function blockContentToHtml(
             ? `/api/serve-media?path=${encodeURIComponent(src)}`
             : src
 
-          return `<figure><img src="${imageSrc}" alt="${alt}" style="max-width: 100%; height: auto;" /></figure>`
+          // `data-align` is read by the preview's typography CSS to flow the
+          // figure left/right or centre it. The default (no attribute) is the
+          // surrounding block flow, matching WordPress's `alignnone`.
+          const alignAttr = alignment ? ` data-align="${alignment}"` : ''
+          const figcaption = caption ? `<figcaption>${caption}</figcaption>` : ''
+
+          return `<figure${alignAttr}><img src="${imageSrc}" alt="${alt}" style="max-width: 100%; height: auto;" />${figcaption}</figure>`
         }
         return ''
+      }
+
+      // Handle divider blocks (`<hr>` semantic)
+      if (block._type === 'divider') {
+        return '<hr />'
+      }
+
+      // Handle generic embed blocks (iframes that are not YouTube/Vimeo)
+      if (block._type === 'embed') {
+        const embedBlock = block as { url?: string; caption?: string }
+        const url = embedBlock.url || ''
+        if (!url) return ''
+        const caption = embedBlock.caption ? `<figcaption>${embedBlock.caption}</figcaption>` : ''
+        return `<figure class="embed-block"><iframe src="${url}" loading="lazy" referrerpolicy="no-referrer"></iframe>${caption}</figure>`
       }
 
       // Handle audio blocks

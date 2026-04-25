@@ -9,13 +9,17 @@ import type {
   MigrationImageBlock,
   MigrationAudioBlock,
   MigrationVideoBlock,
+  MigrationDividerBlock,
+  MigrationEmbedBlock,
 } from '../types/migration'
 
 // BlockChild interface is part of MigrationTextBlock's children property
 
 // interface Block is defined in MigrationTextBlock
 
-// Strip HTML tags and decode entities
+// Strip HTML tags and decode the common named entities. Mirrors the entity
+// list in parse-inline-html.ts so plain-text extraction (e.g. figcaption)
+// matches the rich-text path.
 function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, '') // Remove all tags
@@ -25,6 +29,9 @@ function stripHtml(html: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    .replace(/&hellip;/g, '…')
     .trim()
 }
 
@@ -256,12 +263,44 @@ function extractVideoBlocks(
   return blocks
 }
 
-// Extract image blocks using regex
+/**
+ * Map an `align(none|left|center|right)` class to the canonical alignment
+ * value. WordPress's `alignnone` is the implicit default and is dropped.
+ */
+function parseAlignment(html: string): MigrationImageBlock['alignment'] | undefined {
+  const match = /align(none|left|center|right)/i.exec(html)
+  if (!match) return undefined
+  const value = match[1].toLowerCase()
+  if (value === 'left' || value === 'center' || value === 'right') {
+    return value
+  }
+  return undefined
+}
+
+/**
+ * Extract the text of the first `<figcaption>` in the given HTML, if any.
+ * Returns `undefined` when no caption is present or it is empty.
+ */
+function parseFigcaption(html: string): string | undefined {
+  const match = /<figcaption[^>]*>([\s\S]*?)<\/figcaption>/i.exec(html)
+  if (!match) return undefined
+  const text = stripHtml(match[1])
+  return text.length > 0 ? text : undefined
+}
+
+// Extract image blocks using regex. The input may be a standalone `<img>`,
+// a `<figure>...</figure>` wrapper, or any HTML containing one or more
+// `<img>` tags. When the input is a figure, the figcaption text becomes the
+// caption and any alignment class (on the figure or the img) is captured.
 function extractImageBlocks(
   html: string,
   mediaMap: Map<string, MediaReference>,
 ): MigrationImageBlock[] {
   const blocks: MigrationImageBlock[] = []
+
+  // Pull figure-level attributes once — they apply to every image inside.
+  const figureCaption = parseFigcaption(html)
+  const figureAlignment = parseAlignment(html)
 
   // Pattern to match image blocks - handles attributes in any order
   const imagePattern = /<img[^>]*>/gi
@@ -278,6 +317,10 @@ function extractImageBlocks(
     const altMatch = /\s+alt="([^"]*)"/.exec(imgTag)
     const alt = altMatch ? altMatch[1] : ''
 
+    // Alignment may live on the <img> class or on a wrapping <figure>.
+    // The img-level class wins when both are present.
+    const alignment = parseAlignment(imgTag) ?? figureAlignment
+
     if (src) {
       const mediaRef = mediaMap.get(src)
       const imageBlock: MigrationImageBlock = {
@@ -287,11 +330,46 @@ function extractImageBlocks(
         url: src,
         localPath: mediaRef?.localPath,
       }
+      if (figureCaption) {
+        imageBlock.caption = figureCaption
+      }
+      if (alignment) {
+        imageBlock.alignment = alignment
+      }
       blocks.push(imageBlock)
     }
   }
 
   return blocks
+}
+
+/**
+ * Build a divider block from an `<hr>` tag.
+ */
+function extractDividerBlock(): MigrationDividerBlock {
+  return { _type: 'divider', _key: nanoid() }
+}
+
+/**
+ * Build a generic embed block from an `<iframe>` whose URL is not handled
+ * by the more specific video extractor (i.e. not YouTube or Vimeo).
+ */
+function extractEmbedBlock(html: string): MigrationEmbedBlock | null {
+  const srcMatch = /<iframe[^>]*\bsrc="([^"]+)"/i.exec(html)
+  if (!srcMatch) return null
+  return { _type: 'embed', _key: nanoid(), url: srcMatch[1] }
+}
+
+/**
+ * Detect whether an iframe URL points at a video host that is handled by
+ * the dedicated video extractor (YouTube or Vimeo). Other hosts are
+ * surfaced as generic embeds.
+ */
+function isVideoIframe(html: string): boolean {
+  const srcMatch = /<iframe[^>]*\bsrc="([^"]+)"/i.exec(html)
+  if (!srcMatch) return false
+  const src = srcMatch[1]
+  return /youtube\.com|youtu\.be|vimeo\.com/i.test(src)
 }
 
 // Removed unused extractTextBlocks function - text extraction is handled in htmlToBlockContent
@@ -330,8 +408,10 @@ export async function htmlToBlockContent(
     /<audio[^>]*>[\s\S]*?<\/audio>/gi,
     // Standalone video elements (with closing tag)
     /<video[^>]*>[\s\S]*?<\/video>/gi,
-    // Iframe embeds (for YouTube/Vimeo)
+    // Iframe embeds (YouTube/Vimeo become video blocks; other hosts become embed blocks)
     /<iframe[^>]*>/gi,
+    // Horizontal rule (becomes a divider block)
+    /<hr\b[^>]*\/?>/gi,
     // Blockquote elements
     /<blockquote[^>]*>[\s\S]*?<\/blockquote>/gi,
     // List elements (ul and ol)
@@ -425,8 +505,17 @@ export async function htmlToBlockContent(
       const videoBlocks = extractVideoBlocks(element, mediaMap)
       blocks.push(...videoBlocks)
     } else if (element.startsWith('<iframe')) {
-      const videoBlocks = extractVideoBlocks(element, mediaMap)
-      blocks.push(...videoBlocks)
+      // YouTube and Vimeo go through the video extractor; everything else
+      // is surfaced as a generic embed block.
+      if (isVideoIframe(element)) {
+        const videoBlocks = extractVideoBlocks(element, mediaMap)
+        blocks.push(...videoBlocks)
+      } else {
+        const embedBlock = extractEmbedBlock(element)
+        if (embedBlock) blocks.push(embedBlock)
+      }
+    } else if (element.startsWith('<hr')) {
+      blocks.push(extractDividerBlock())
     } else if (element.startsWith('<img')) {
       const imageBlocks = extractImageBlocks(element, mediaMap)
       blocks.push(...imageBlocks)
