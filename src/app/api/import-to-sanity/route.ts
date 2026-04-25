@@ -226,6 +226,7 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           throw new Error(
             `Failed to connect to Sanity: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { cause: error },
           )
         }
 

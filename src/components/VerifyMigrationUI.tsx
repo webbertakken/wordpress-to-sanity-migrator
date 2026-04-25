@@ -431,8 +431,11 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
           <div className="mb-8 bg-gray-800 rounded-lg p-6 border border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Search</label>
+                <label htmlFor="verify-search" className="block text-sm font-medium mb-2">
+                  Search
+                </label>
                 <input
+                  id="verify-search"
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -441,8 +444,11 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Content Type</label>
+                <label htmlFor="verify-content-type" className="block text-sm font-medium mb-2">
+                  Content Type
+                </label>
                 <select
+                  id="verify-content-type"
                   value={contentTypeFilter}
                   onChange={(e) => setContentTypeFilter(e.target.value as 'all' | 'post' | 'page')}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-500 focus:outline-none"
@@ -453,9 +459,12 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Sort By</label>
+                <label htmlFor="verify-sort-by" className="block text-sm font-medium mb-2">
+                  Sort By
+                </label>
                 <div className="flex gap-2">
                   <select
+                    id="verify-sort-by"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as 'title' | 'date' | 'type')}
                     className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-500 focus:outline-none"
@@ -499,8 +508,11 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
             const isSelected = selectedItems.has(index)
 
             return (
+              // Selection / open-details state is keyed by the same index in
+              // selectedItems / openDetails / openData; switching to a stable
+              // record id requires a wider refactor across those Sets.
               <div
-                key={index}
+                key={index} // oxlint-disable-line react/no-array-index-key
                 className={`mb-6 border ${borderColor} rounded-lg p-6 ${bgColor} shadow transition-all duration-200 ${
                   isSelected ? 'ring-2 ring-purple-500' : ''
                 }`}
@@ -650,9 +662,9 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                       <div className="bg-gray-700 rounded-lg p-4">
                         <h3 className="text-lg font-semibold mb-3">Media References</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {record.transformed.media.map((media, mediaIndex) => (
+                          {record.transformed.media.map((media) => (
                             <div
-                              key={mediaIndex}
+                              key={media.url}
                               className={`rounded p-3 ${media.found ? 'bg-green-600/20 border border-green-600' : 'bg-red-600/20 border border-red-600'}`}
                             >
                               <div className="flex items-center gap-2 mb-2">

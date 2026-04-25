@@ -234,8 +234,10 @@ export function generateTagReport(analysis: TagAnalysis): string {
   report += '\n'
 
   report += 'NON-MEDIA TAGS (no action needed):\n'
-  const nonMediaFound = Array.from(analysis.allTags).filter((tag) => NON_MEDIA_TAGS.has(tag))
-  nonMediaFound.sort().forEach((tag) => {
+  const nonMediaFound = Array.from(analysis.allTags)
+    .filter((tag) => NON_MEDIA_TAGS.has(tag))
+    .toSorted()
+  nonMediaFound.forEach((tag) => {
     const frequency = analysis.tagFrequency.get(tag) || 0
     report += `- ${tag} (${frequency} occurrences)\n`
   })
@@ -256,7 +258,7 @@ export function generateTagReport(analysis: TagAnalysis): string {
   if (analysis.uncoveredMediaTags.size > 0) {
     report += 'UNCOVERED MEDIA TAGS (need attention):\n'
     Array.from(analysis.uncoveredMediaTags)
-      .sort()
+      .toSorted()
       .forEach((tag) => {
         const frequency = analysis.tagFrequency.get(tag) || 0
         report += `- ${tag} (${frequency} occurrences)\n`

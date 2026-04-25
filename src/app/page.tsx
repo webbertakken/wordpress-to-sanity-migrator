@@ -96,8 +96,10 @@ export default function Home() {
               {MIGRATION_STEPS.map((s: MigrationStep, i: number) => {
                 const isCompleted = completedSteps.has(i)
                 return (
+                  // MIGRATION_STEPS is a fixed module-level constant; index is
+                  // a stable identity for these step buttons.
                   <button
-                    key={i}
+                    key={i} // oxlint-disable-line react/no-array-index-key
                     onClick={() => setStep(i)}
                     className={`
                       rounded-lg border shadow-lg p-6 flex flex-col items-start 

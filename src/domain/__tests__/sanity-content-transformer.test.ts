@@ -50,10 +50,10 @@ describe('SanityContentTransformer', () => {
 
       // Check first block
       const firstBlock = sanityPost.content?.[0]
-      expect(firstBlock?._type).toBe('block')
-      if (firstBlock?._type === 'block') {
-        expect(firstBlock.style).toBe('normal')
+      if (firstBlock?._type !== 'block') {
+        throw new Error(`expected first block to be a text block, got '${firstBlock?._type}'`)
       }
+      expect(firstBlock.style).toBe('normal')
 
       // Verify text content is preserved
       const plainText = sanityPost.body
@@ -91,10 +91,10 @@ describe('SanityContentTransformer', () => {
       const result = await SanityContentTransformer.transform(mockWordPressPage, {
         treatAsPost: true,
       })
-      expect(result._type).toBe('post')
-      if (result._type === 'post') {
-        expect(result.title).toBe('Test Page Title')
+      if (result._type !== 'post') {
+        throw new Error(`expected post, got '${result._type}'`)
       }
+      expect(result.title).toBe('Test Page Title')
     }, 10000)
   })
 

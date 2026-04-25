@@ -16,6 +16,92 @@ interface DockerManagerUIProps {
   onIncomplete?: () => void
 }
 
+function renderStep(step: DockerStep, index: number) {
+  const isNoSuchContainer = (step.stderr && step.stderr.includes('No such container')) || step.info
+  const isRunning = !step.stdout && !step.stderr && !step.success
+
+  let statusLabel: string
+  let statusClass: string
+
+  if (isRunning) {
+    statusLabel = 'Running...'
+    statusClass = 'bg-yellow-900/50 text-yellow-300'
+  } else if (isNoSuchContainer) {
+    statusLabel = 'Info'
+    statusClass = 'bg-blue-900/50 text-blue-300'
+  } else if (step.success) {
+    statusLabel = 'Success'
+    statusClass = 'bg-green-900/50 text-green-300'
+  } else {
+    statusLabel = 'Failed'
+    statusClass = 'bg-red-900/50 text-red-300'
+  }
+  return (
+    <div key={index} className="mb-6 border border-gray-700 rounded-lg overflow-hidden">
+      <div
+        className={`p-4 ${
+          isRunning
+            ? 'bg-yellow-900/20'
+            : isNoSuchContainer
+              ? 'bg-blue-900/20'
+              : step.success
+                ? 'bg-gray-800'
+                : 'bg-red-900/50'
+        }`}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold">{step.step}</h3>
+          <span className={`px-2 py-1 rounded text-sm ${statusClass} flex items-center gap-1`}>
+            {isRunning && (
+              <svg
+                className="animate-spin h-3 w-3"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            )}
+            {statusLabel}
+          </span>
+        </div>
+        <div className="mb-2">
+          <span className="text-gray-400 text-sm">Command:</span>
+          <pre className="mt-1 bg-gray-900/50 p-2 rounded text-sm font-mono">{step.cmd}</pre>
+        </div>
+        {step.stdout && (
+          <div className="mb-2">
+            <span className="text-gray-400 text-sm">Output:</span>
+            <pre className="mt-1 bg-gray-900/50 p-2 rounded text-sm font-mono whitespace-pre-wrap">
+              {step.stdout}
+            </pre>
+          </div>
+        )}
+        {step.stderr && (
+          <div>
+            <span className="text-red-400 text-sm">Error:</span>
+            <pre className="mt-1 bg-gray-900/50 p-2 rounded text-sm font-mono whitespace-pre-wrap text-red-400">
+              {step.stderr}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete, onIncomplete }) => {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -178,93 +264,6 @@ export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete, on
     }
   }
 
-  const renderStep = (step: DockerStep, index: number) => {
-    const isNoSuchContainer =
-      (step.stderr && step.stderr.includes('No such container')) || step.info
-    const isRunning = !step.stdout && !step.stderr && !step.success
-
-    let statusLabel: string
-    let statusClass: string
-
-    if (isRunning) {
-      statusLabel = 'Running...'
-      statusClass = 'bg-yellow-900/50 text-yellow-300'
-    } else if (isNoSuchContainer) {
-      statusLabel = 'Info'
-      statusClass = 'bg-blue-900/50 text-blue-300'
-    } else if (step.success) {
-      statusLabel = 'Success'
-      statusClass = 'bg-green-900/50 text-green-300'
-    } else {
-      statusLabel = 'Failed'
-      statusClass = 'bg-red-900/50 text-red-300'
-    }
-    return (
-      <div key={index} className="mb-6 border border-gray-700 rounded-lg overflow-hidden">
-        <div
-          className={`p-4 ${
-            isRunning
-              ? 'bg-yellow-900/20'
-              : isNoSuchContainer
-                ? 'bg-blue-900/20'
-                : step.success
-                  ? 'bg-gray-800'
-                  : 'bg-red-900/50'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">{step.step}</h3>
-            <span className={`px-2 py-1 rounded text-sm ${statusClass} flex items-center gap-1`}>
-              {isRunning && (
-                <svg
-                  className="animate-spin h-3 w-3"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              )}
-              {statusLabel}
-            </span>
-          </div>
-          <div className="mb-2">
-            <span className="text-gray-400 text-sm">Command:</span>
-            <pre className="mt-1 bg-gray-900/50 p-2 rounded text-sm font-mono">{step.cmd}</pre>
-          </div>
-          {step.stdout && (
-            <div className="mb-2">
-              <span className="text-gray-400 text-sm">Output:</span>
-              <pre className="mt-1 bg-gray-900/50 p-2 rounded text-sm font-mono whitespace-pre-wrap">
-                {step.stdout}
-              </pre>
-            </div>
-          )}
-          {step.stderr && (
-            <div>
-              <span className="text-red-400 text-sm">Error:</span>
-              <pre className="mt-1 bg-gray-900/50 p-2 rounded text-sm font-mono whitespace-pre-wrap text-red-400">
-                {step.stderr}
-              </pre>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="p-8">
       <h2 className="text-2xl font-bold mb-4">Docker Container Manager</h2>
@@ -324,6 +323,8 @@ export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete, on
                             </h3>
                             <div className="text-yellow-100">
                               {details.guidance.split('\n').map((line: string, index: number) => (
+                                // Each line is rendered statically; index is fine.
+                                // oxlint-disable-next-line react/no-array-index-key
                                 <p key={index} className="mb-2">
                                   {line}
                                 </p>

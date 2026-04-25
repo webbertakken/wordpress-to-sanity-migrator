@@ -59,6 +59,8 @@ export function MigrationNavigation({
               // const isPending = !isActive && !isCompleted
 
               return (
+                // Steps array is fixed at module scope; index is a stable identity here.
+                // oxlint-disable-next-line react/no-array-index-key
                 <React.Fragment key={index}>
                   {index > 0 && (
                     <div

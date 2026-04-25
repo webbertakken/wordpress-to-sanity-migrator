@@ -28,7 +28,12 @@ function stripHtml(html: string): string {
  * Static utility class for transforming WordPress content to Sanity format.
  * This class encapsulates the transformation logic from WordPress content
  * to Sanity's content model, including media processing and content conversion.
+ *
+ * Used as a namespace at every call site (`SanityContentTransformer.toSanityPost(...)`)
+ * which is clearer here than free module functions; the lint rule does not
+ * distinguish that intent from accidental classes.
  */
+// oxlint-disable-next-line typescript/no-extraneous-class
 export class SanityContentTransformer {
   /**
    * Transforms any WordPress content into a Sanity post content value object.
