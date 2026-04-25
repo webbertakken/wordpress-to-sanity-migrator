@@ -45,7 +45,8 @@ async function uploadMedia(
       return asset._id
     } catch (error) {
       const isLastAttempt = attempt === maxRetries
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      // Both `client.assets.upload` and `fs.readFile` reject with Error instances.
+      const errorMessage = (error as Error).message
 
       console.error(
         `Failed to upload media (attempt ${attempt}/${maxRetries}): ${mediaPath}`,
@@ -280,7 +281,7 @@ export async function POST(request: NextRequest) {
         } else if (testRun) {
           // Find a record with both image and audio media for test
           const recordWithMixedMedia = migrationData.find((record) => {
-            const media = record.transformed.media || []
+            const media = record.transformed.media
             const hasImage = media.some((m) => m.type === 'image' && m.found)
             const hasAudio = media.some((m) => m.type === 'audio' && m.found)
             return hasImage && hasAudio
@@ -294,10 +295,9 @@ export async function POST(request: NextRequest) {
             })
           } else {
             // Fallback to first record with any media
-            const recordWithMedia = migrationData.find((record) => {
-              const media = record.transformed.media || []
-              return media.some((m) => m.found)
-            })
+            const recordWithMedia = migrationData.find((record) =>
+              record.transformed.media.some((m) => m.found),
+            )
 
             if (recordWithMedia) {
               recordsToImport = [recordWithMedia]
@@ -403,11 +403,11 @@ export async function POST(request: NextRequest) {
                   sanityDoc._type === 'post'
                     ? !!sanityDoc.content && sanityDoc.content.length > 0
                     : false,
-                contentBlocks: sanityDoc._type === 'post' ? sanityDoc.content?.length || 0 : 0,
+                contentBlocks: sanityDoc._type === 'post' ? (sanityDoc.content?.length ?? 0) : 0,
                 hasExcerpt: sanityDoc._type === 'post' ? !!sanityDoc.excerpt : false,
                 hasCoverImage: sanityDoc._type === 'post' ? !!sanityDoc.coverImage.asset : false,
-                mediaInContent: record.transformed.media?.length || 0,
-                mediaTypes: [...new Set(record.transformed.media?.map((m) => m.type) || [])],
+                mediaInContent: record.transformed.media.length,
+                mediaTypes: [...new Set(record.transformed.media.map((m) => m.type))],
               },
             })
             send({
@@ -429,9 +429,10 @@ export async function POST(request: NextRequest) {
         }
 
         if (testRun) {
+          // Test runs always narrow to a single record (selected or auto-picked).
           send({
             type: 'success',
-            message: `Test run completed successfully! Processed ${recordsToImport.length} record${recordsToImport.length === 1 ? '' : 's'}.`,
+            message: `Test run completed successfully! Processed ${recordsToImport.length} record.`,
             details: {
               recordsProcessed: recordsToImport.length,
               mediaUploaded: mediaAssets.size,

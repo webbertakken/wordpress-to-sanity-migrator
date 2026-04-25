@@ -75,7 +75,9 @@ export function blockContentToHtml(
         // MIME type from the file extension. Without it some browsers
         // refuse to load <source> children at all, leaving the <video>
         // element blank.
-        const ext = src.split('.').pop()?.toLowerCase() ?? ''
+        // String.split always returns at least one element, so .pop() is
+        // guaranteed to return a string here.
+        const ext = src.split('.').pop()!.toLowerCase()
         const mimeType =
           ext === 'mp4'
             ? 'video/mp4'
@@ -131,6 +133,8 @@ export function blockContentToHtml(
         return ''
       }
 
+      // Every other _type is handled above; this catches any future block
+      // kind that has not been wired into the renderer yet.
       if (block._type !== 'block') {
         return ''
       }

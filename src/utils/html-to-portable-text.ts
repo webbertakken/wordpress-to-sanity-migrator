@@ -492,32 +492,12 @@ export async function htmlToBlockContent(
   // Sort matches by their position in the HTML
   allMatches.sort((a, b) => a.match.index! - b.match.index!)
 
-  let lastIndex = 0
-
-  // Process each match in order
+  // Process each match in order. Loose text between/around elements is
+  // impossible: splitIntoParagraphs above wraps every bare text run in <p>,
+  // so the gap between two consecutive matches is at most a newline plus
+  // tag-bearing markup that does not pass the inner conditions.
   for (const { match } of allMatches) {
     const element = match[0]
-    const matchIndex = match.index!
-
-    // Process any text content before this element
-    if (matchIndex > lastIndex) {
-      const textBefore = html.substring(lastIndex, matchIndex).trim()
-      if (textBefore && !/<[^>]*>/.test(textBefore)) {
-        blocks.push({
-          _type: 'block',
-          _key: nanoid(),
-          style: 'normal',
-          children: [
-            {
-              _type: 'span',
-              _key: nanoid(),
-              text: stripHtml(textBefore),
-            },
-          ],
-          markDefs: [],
-        })
-      }
-    }
 
     // Determine element type and process accordingly
     if (element.startsWith('<figure')) {
@@ -621,28 +601,6 @@ export async function htmlToBlockContent(
           }
         })
       }
-    }
-
-    lastIndex = matchIndex + element.length
-  }
-
-  // Process any remaining text after the last element
-  if (lastIndex < html.length) {
-    const textAfter = html.substring(lastIndex).trim()
-    if (textAfter && !/<[^>]*>/.test(textAfter)) {
-      blocks.push({
-        _type: 'block',
-        _key: nanoid(),
-        style: 'normal',
-        children: [
-          {
-            _type: 'span',
-            _key: nanoid(),
-            text: stripHtml(textAfter),
-          },
-        ],
-        markDefs: [],
-      })
     }
   }
 

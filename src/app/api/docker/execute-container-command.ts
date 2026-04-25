@@ -41,40 +41,38 @@ const CONTAINER_NAME = 'temp-mariadb'
 const DB_NAME = 'wordpress'
 const BACKUP_FILE = path.resolve(process.cwd(), 'input/database/backup.sql')
 
-function extractOutput(
-  res: { stdout?: string; stderr?: string; message?: string } | Error,
-): ExecResult {
-  if (res instanceof Error) {
-    const errObj = res as Error & { stdout?: string; stderr?: string; message?: string }
-    return {
-      stdout: typeof errObj.stdout === 'string' ? errObj.stdout : '',
-      stderr:
-        typeof errObj.stderr === 'string'
-          ? errObj.stderr
-          : typeof errObj.message === 'string'
-            ? errObj.message
-            : res.message,
-    }
-  }
+/**
+ * Step input shape. Mirrors the shape execAsync resolves with on success and
+ * the shape Errors thrown by execAsync expose (stdout/stderr from child_process).
+ * `info` is set by the caller when a step needs to be flagged as informational.
+ */
+type StepInput = { stdout?: string; stderr?: string; message?: string; info?: boolean }
+
+/** Pull stdout/stderr from a step input, falling back to message for thrown Errors. */
+function extractOutput(res: StepInput | Error): ExecResult {
+  const r = res as StepInput
   return {
-    stdout: res.stdout ?? '',
-    stderr: res.stderr ?? res.message ?? '',
+    stdout: r.stdout ?? '',
+    stderr: r.stderr ?? r.message ?? '',
   }
 }
 
-function getErrorDetails(
-  error: unknown,
-): { stack?: string; stdout?: string; stderr?: string; code?: string | number } | undefined {
-  if (typeof error === 'object' && error !== null) {
-    const e = error as Partial<Error & { stdout?: string; stderr?: string; code?: string | number }>
-    return {
-      stack: typeof e.stack === 'string' ? e.stack : undefined,
-      stdout: typeof e.stdout === 'string' ? e.stdout : undefined,
-      stderr: typeof e.stderr === 'string' ? e.stderr : undefined,
-      code: typeof e.code === 'string' || typeof e.code === 'number' ? e.code : undefined,
-    }
-  }
-  return undefined
+interface ErrorDetails {
+  stack?: string
+  stdout?: string
+  stderr?: string
+  code?: string | number
+}
+
+/**
+ * Pluck the diagnostic fields off an unknown error value. Errors thrown by
+ * `child_process.exec` carry stdout/stderr/code in addition to stack.
+ * `Object(error)` boxes primitives and turns null/undefined into `{}`, so
+ * property access is always safe.
+ */
+function getErrorDetails(error: unknown): ErrorDetails {
+  const e = Object(error) as Partial<ErrorDetails>
+  return { stack: e.stack, stdout: e.stdout, stderr: e.stderr, code: e.code }
 }
 
 export async function executeContainerCommand(
@@ -96,40 +94,30 @@ export async function executeContainerCommand(
     return steps.length - 1
   }
 
-  function updateStep(
-    index: number,
-    res: { stdout?: string; stderr?: string; message?: string; info?: boolean } | Error,
+  function buildStep(
+    base: { step: string; cmd: string },
+    res: StepInput | Error,
     success: boolean,
-  ): void {
+  ): ContainerCommandStep {
     const { stdout, stderr } = extractOutput(res)
-    const infoValue = 'info' in res && typeof res.info === 'boolean' ? res.info : undefined
-    const stepData = {
-      ...steps[index],
+    const info = (res as StepInput).info
+    return {
+      ...base,
       stdout,
       stderr,
       success,
-      ...(infoValue !== undefined ? { info: infoValue } : {}),
+      ...(typeof info === 'boolean' ? { info } : {}),
     }
+  }
+
+  function updateStep(index: number, res: StepInput | Error, success: boolean): void {
+    const stepData = buildStep(steps[index], res, success)
     steps[index] = stepData
     onStep?.(stepData)
   }
 
-  function pushStep(
-    step: string,
-    cmd: string,
-    res: { stdout?: string; stderr?: string; message?: string; info?: boolean } | Error,
-    success: boolean,
-  ): void {
-    const { stdout, stderr } = extractOutput(res)
-    const infoValue = 'info' in res && typeof res.info === 'boolean' ? res.info : undefined
-    const stepData = {
-      step,
-      cmd,
-      stdout,
-      stderr,
-      success,
-      ...(infoValue !== undefined ? { info: infoValue } : {}),
-    }
+  function pushStep(step: string, cmd: string, res: StepInput | Error, success: boolean): void {
+    const stepData = buildStep({ step, cmd }, res, success)
     steps.push(stepData)
     onStep?.(stepData)
   }
@@ -143,7 +131,7 @@ export async function executeContainerCommand(
       let res: { stdout: string; stderr: string } | Error
       try {
         res = await execAsync(startCmd)
-        const isSuccess = !(res.stderr && res.stderr.trim())
+        const isSuccess = res.stderr.trim() === ''
         updateStep(startIndex, res, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to start container', steps }
       } catch (err: unknown) {
@@ -151,38 +139,25 @@ export async function executeContainerCommand(
 
         // Provide specific error messages based on the error
         let errorMessage = 'Failed to start container'
-        let errorDetails: unknown = getErrorDetails(err)
+        const errorDetails: ErrorDetails & { guidance?: string } = getErrorDetails(err)
+        const errMsg = (err as Error).message.toLowerCase()
+        const stderr = ((err as DockerError).stderr ?? '').toLowerCase()
 
-        if (err instanceof Error) {
-          const errMsg = err.message?.toLowerCase() || ''
-          const dockerError = err as DockerError
-          const stderr = dockerError.stderr?.toLowerCase() || ''
-
-          if (
-            stderr.includes('bind: address already in use') ||
-            errMsg.includes('port is already allocated')
-          ) {
-            errorMessage = 'Port 3306 is already in use'
-            errorDetails = {
-              ...(typeof errorDetails === 'object' && errorDetails !== null ? errorDetails : {}),
-              guidance:
-                'Another application or container is already using port 3306.\n' +
-                'Please stop any existing MySQL/MariaDB services or containers.\n' +
-                "You can check what's using the port with: lsof -i :3306 (on Mac/Linux) or netstat -ano | findstr :3306 (on Windows)",
-            }
-          } else if (stderr.includes('conflict') && stderr.includes('name')) {
-            errorMessage = 'Container with this name already exists'
-            errorDetails = {
-              ...(typeof errorDetails === 'object' && errorDetails !== null ? errorDetails : {}),
-              guidance:
-                'A container named "' +
-                CONTAINER_NAME +
-                '" already exists.\n' +
-                'Try stopping the migration first, or remove the existing container with:\n' +
-                'docker rm -f ' +
-                CONTAINER_NAME,
-            }
-          }
+        if (
+          stderr.includes('bind: address already in use') ||
+          errMsg.includes('port is already allocated')
+        ) {
+          errorMessage = 'Port 3306 is already in use'
+          errorDetails.guidance =
+            'Another application or container is already using port 3306.\n' +
+            'Please stop any existing MySQL/MariaDB services or containers.\n' +
+            "You can check what's using the port with: lsof -i :3306 (on Mac/Linux) or netstat -ano | findstr :3306 (on Windows)"
+        } else if (stderr.includes('conflict') && stderr.includes('name')) {
+          errorMessage = 'Container with this name already exists'
+          errorDetails.guidance =
+            `A container named "${CONTAINER_NAME}" already exists.\n` +
+            'Try stopping the migration first, or remove the existing container with:\n' +
+            `docker rm -f ${CONTAINER_NAME}`
         }
 
         return { success: false, error: errorMessage, details: errorDetails, steps }
@@ -197,7 +172,7 @@ export async function executeContainerCommand(
 
       try {
         res = await execAsync(createDbCmd)
-        const isSuccess = !(res.stderr && res.stderr.trim())
+        const isSuccess = res.stderr.trim() === ''
         updateStep(createDbIndex, res, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to create database', steps }
       } catch (err: unknown) {
@@ -237,7 +212,7 @@ export async function executeContainerCommand(
             stream.pipe(child.stdin)
           },
         )
-        const isSuccess = !(importResult.stderr && importResult.stderr.trim())
+        const isSuccess = importResult.stderr.trim() === ''
         updateStep(importIndex, importResult, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to import dump', steps }
       } catch (err: unknown) {
@@ -250,7 +225,7 @@ export async function executeContainerCommand(
 
       try {
         res = await execAsync(inspectCmd)
-        const isSuccess = !(res.stderr && res.stderr.trim())
+        const isSuccess = res.stderr.trim() === ''
         updateStep(inspectIndex, res, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to inspect databases', steps }
       } catch (err: unknown) {
@@ -264,7 +239,7 @@ export async function executeContainerCommand(
 
       try {
         res = await execAsync(listTablesCmd)
-        const isSuccess = !(res.stderr && res.stderr.trim())
+        const isSuccess = res.stderr.trim() === ''
         updateStep(listTablesIndex, res, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to list tables', steps }
       } catch (err: unknown) {
@@ -278,7 +253,7 @@ export async function executeContainerCommand(
 
       try {
         res = await execAsync(countPostsCmd)
-        const isSuccess = !(res.stderr && res.stderr.trim())
+        const isSuccess = res.stderr.trim() === ''
         updateStep(countPostsIndex, res, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to count posts', steps }
       } catch (err: unknown) {
@@ -299,20 +274,17 @@ export async function executeContainerCommand(
       let res: ExecResult | Error
       try {
         res = await execAsync(stopCmd)
-        const isNoSuchContainer = Boolean(res.stderr && res.stderr.includes('No such container'))
-        const isSuccess = !(res.stderr && res.stderr.trim()) || isNoSuchContainer
+        const isNoSuchContainer = res.stderr.includes('No such container')
+        const isSuccess = res.stderr.trim() === '' || isNoSuchContainer
         updateStep(stopIndex, { ...res, info: isNoSuchContainer }, isSuccess)
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          const dockerError = err as DockerError
-          if (dockerError.stderr && dockerError.stderr.includes('No such container')) {
-            updateStep(stopIndex, { ...dockerError, info: true }, true)
-          } else {
-            updateStep(stopIndex, dockerError, false)
-          }
-        } else {
-          updateStep(stopIndex, err as Error, false)
-        }
+        const stderr = (err as DockerError).stderr ?? ''
+        const isNoSuchContainer = stderr.includes('No such container')
+        updateStep(
+          stopIndex,
+          { ...(err as DockerError), info: isNoSuchContainer },
+          isNoSuchContainer,
+        )
       }
 
       // 2. Remove container
@@ -321,23 +293,20 @@ export async function executeContainerCommand(
 
       try {
         res = await execAsync(removeCmd)
-        const isNoSuchContainer = Boolean(res.stderr && res.stderr.includes('No such container'))
-        const isSuccess = !(res.stderr && res.stderr.trim()) || isNoSuchContainer
+        const isNoSuchContainer = res.stderr.includes('No such container')
+        const isSuccess = res.stderr.trim() === '' || isNoSuchContainer
         updateStep(removeIndex, { ...res, info: isNoSuchContainer }, isSuccess)
         if (!isSuccess) return { success: false, error: 'Failed to remove container', steps }
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          const dockerError = err as DockerError
-          if (dockerError.stderr && dockerError.stderr.includes('No such container')) {
-            updateStep(removeIndex, { ...dockerError, info: true }, true)
-          } else {
-            updateStep(removeIndex, dockerError, false)
-            return { success: false, error: 'Failed to remove container', steps }
-          }
-        } else {
-          updateStep(removeIndex, err as Error, false)
+        const stderr = (err as DockerError).stderr ?? ''
+        const isNoSuchContainer = stderr.includes('No such container')
+        updateStep(
+          removeIndex,
+          { ...(err as DockerError), info: isNoSuchContainer },
+          isNoSuchContainer,
+        )
+        if (!isNoSuchContainer)
           return { success: false, error: 'Failed to remove container', steps }
-        }
       }
 
       return {

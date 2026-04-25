@@ -12,6 +12,30 @@ export default defineConfig({
     exclude: ['**/e2e/**', '**/node_modules/**'],
     silent: false,
     reporters: ['verbose'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        '**/*.d.ts',
+        '**/__tests__/**',
+        'src/vitest.setup.ts',
+        'src/types/**',
+        'src/app/layout.tsx',
+        'next.config.ts',
+        'next-env.d.ts',
+        'postcss.config.mjs',
+        'input/**',
+        'schema/sanity-studio/**',
+        'scripts/**',
+      ],
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100,
+      },
+    },
   },
   resolve: {
     alias: {
