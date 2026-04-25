@@ -36,6 +36,21 @@ interface ImportToSanityUIProps {
   onComplete?: () => void
 }
 
+function getMessageIcon(type: string): string {
+  switch (type) {
+    case 'success':
+      return '✅'
+    case 'error':
+      return '❌'
+    case 'progress':
+      return '⏳'
+    case 'info':
+      return 'ℹ️'
+    default:
+      return '•'
+  }
+}
+
 export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }) => {
   const [isImporting, setIsImporting] = useState(false)
   const [messages, setMessages] = useState<ImportProgress[]>([])
@@ -233,21 +248,6 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
       ])
     } finally {
       setIsImporting(false)
-    }
-  }
-
-  const getMessageIcon = (type: string) => {
-    switch (type) {
-      case 'success':
-        return '✅'
-      case 'error':
-        return '❌'
-      case 'progress':
-        return '⏳'
-      case 'info':
-        return 'ℹ️'
-      default:
-        return '•'
     }
   }
 
@@ -516,6 +516,8 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
           </h3>
           <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
             {messages.map((msg, index) => (
+              // Progress log is append-only and never reordered.
+              // oxlint-disable-next-line react/no-array-index-key
               <div key={index} className="flex items-start space-x-2 mb-2">
                 <span className="text-yellow-400 mt-0.5 flex-shrink-0">
                   {getMessageIcon(msg.type)}

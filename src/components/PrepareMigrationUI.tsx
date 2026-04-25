@@ -95,19 +95,19 @@ export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComple
                     setCurrentProgress(data.progress)
                   }
                 } else if (data.type === 'result') {
-                  const result = data.result
-                  setResult(result.message || 'Migration preparation completed successfully.')
-                  if (result.data?.postCount !== undefined) {
-                    setPostCount(result.data.postCount)
+                  const payload = data.result
+                  setResult(payload.message || 'Migration preparation completed successfully.')
+                  if (payload.data?.postCount !== undefined) {
+                    setPostCount(payload.data.postCount)
                   }
-                  if (result.data?.pageCount !== undefined) {
-                    setPageCount(result.data.pageCount)
+                  if (payload.data?.pageCount !== undefined) {
+                    setPageCount(payload.data.pageCount)
                   }
-                  if (result.data?.totalCount !== undefined) {
-                    setTotalCount(result.data.totalCount)
+                  if (payload.data?.totalCount !== undefined) {
+                    setTotalCount(payload.data.totalCount)
                   }
-                  if (result.data?.missingMedia !== undefined) {
-                    setMissingMedia(result.data.missingMedia)
+                  if (payload.data?.missingMedia !== undefined) {
+                    setMissingMedia(payload.data.missingMedia)
                   }
 
                   // Call onComplete when migration is successful
@@ -201,6 +201,8 @@ export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComple
                 className="bg-gray-800 rounded-lg p-4 max-h-80 overflow-y-auto border"
               >
                 {progressUpdates.map((update, index) => (
+                  // Progress log is append-only and never reordered.
+                  // oxlint-disable-next-line react/no-array-index-key
                   <div key={index} className="text-sm text-gray-300 mb-1 font-mono">
                     {update.timestamp && (
                       <span className="text-gray-500 mr-2">
@@ -234,9 +236,9 @@ export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComple
             </div>
 
             <div className="max-h-64 overflow-y-auto">
-              {missingMedia.map((media, index) => (
+              {missingMedia.map((media) => (
                 <div
-                  key={index}
+                  key={media.url}
                   className="mb-2 p-2 bg-gray-800/50 rounded border-l-2 border-yellow-500 hover:bg-gray-800/70 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -346,6 +348,8 @@ export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComple
                                 {errorData.details.guidance
                                   .split('\n')
                                   .map((line: string, index: number) => (
+                                    // Each line is rendered statically; index is fine.
+                                    // oxlint-disable-next-line react/no-array-index-key
                                     <p key={index} className="mb-2">
                                       {line}
                                     </p>

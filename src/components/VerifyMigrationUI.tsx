@@ -508,8 +508,11 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
             const isSelected = selectedItems.has(index)
 
             return (
+              // Selection / open-details state is keyed by the same index in
+              // selectedItems / openDetails / openData; switching to a stable
+              // record id requires a wider refactor across those Sets.
               <div
-                key={index}
+                key={index} // oxlint-disable-line react/no-array-index-key
                 className={`mb-6 border ${borderColor} rounded-lg p-6 ${bgColor} shadow transition-all duration-200 ${
                   isSelected ? 'ring-2 ring-purple-500' : ''
                 }`}
@@ -659,9 +662,9 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                       <div className="bg-gray-700 rounded-lg p-4">
                         <h3 className="text-lg font-semibold mb-3">Media References</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {record.transformed.media.map((media, mediaIndex) => (
+                          {record.transformed.media.map((media) => (
                             <div
-                              key={mediaIndex}
+                              key={media.url}
                               className={`rounded p-3 ${media.found ? 'bg-green-600/20 border border-green-600' : 'bg-red-600/20 border border-red-600'}`}
                             >
                               <div className="flex items-center gap-2 mb-2">

@@ -2,23 +2,23 @@ import { describe, it, expect } from 'vitest'
 import { SanityContentTransformer } from '../sanity-content-transformer'
 import type { WordPressPost } from '../../types/migration'
 
-describe('Excerpt Generation', () => {
-  const createWordPressPost = (overrides: Partial<WordPressPost> = {}): WordPressPost => ({
-    ID: 1,
-    post_title: 'Test Post',
-    post_content: 'Default content',
-    post_excerpt: '',
-    post_date: '2024-01-01',
-    post_modified: '2024-01-01',
-    post_status: 'publish',
-    post_name: 'test-post',
-    post_type: 'post',
-    post_parent: 0,
-    menu_order: 0,
-    guid: 'http://example.com/?p=1',
-    ...overrides,
-  })
+const createWordPressPost = (overrides: Partial<WordPressPost> = {}): WordPressPost => ({
+  ID: 1,
+  post_title: 'Test Post',
+  post_content: 'Default content',
+  post_excerpt: '',
+  post_date: '2024-01-01',
+  post_modified: '2024-01-01',
+  post_status: 'publish',
+  post_name: 'test-post',
+  post_type: 'post',
+  post_parent: 0,
+  menu_order: 0,
+  guid: 'http://example.com/?p=1',
+  ...overrides,
+})
 
+describe('Excerpt Generation', () => {
   it('should use existing excerpt when provided', async () => {
     const post = createWordPressPost({
       post_excerpt: 'This is a custom excerpt',

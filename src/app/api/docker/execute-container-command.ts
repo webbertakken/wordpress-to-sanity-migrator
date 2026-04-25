@@ -41,32 +41,47 @@ const CONTAINER_NAME = 'temp-mariadb'
 const DB_NAME = 'wordpress'
 const BACKUP_FILE = path.resolve(process.cwd(), 'input/database/backup.sql')
 
+function extractOutput(
+  res: { stdout?: string; stderr?: string; message?: string } | Error,
+): ExecResult {
+  if (res instanceof Error) {
+    const errObj = res as Error & { stdout?: string; stderr?: string; message?: string }
+    return {
+      stdout: typeof errObj.stdout === 'string' ? errObj.stdout : '',
+      stderr:
+        typeof errObj.stderr === 'string'
+          ? errObj.stderr
+          : typeof errObj.message === 'string'
+            ? errObj.message
+            : res.message,
+    }
+  }
+  return {
+    stdout: res.stdout ?? '',
+    stderr: res.stderr ?? res.message ?? '',
+  }
+}
+
+function getErrorDetails(
+  error: unknown,
+): { stack?: string; stdout?: string; stderr?: string; code?: string | number } | undefined {
+  if (typeof error === 'object' && error !== null) {
+    const e = error as Partial<Error & { stdout?: string; stderr?: string; code?: string | number }>
+    return {
+      stack: typeof e.stack === 'string' ? e.stack : undefined,
+      stdout: typeof e.stdout === 'string' ? e.stdout : undefined,
+      stderr: typeof e.stderr === 'string' ? e.stderr : undefined,
+      code: typeof e.code === 'string' || typeof e.code === 'number' ? e.code : undefined,
+    }
+  }
+  return undefined
+}
+
 export async function executeContainerCommand(
   command: ContainerCommand,
   onStep?: (step: ContainerCommandStep) => void,
 ): Promise<ContainerCommandResult> {
   const steps: ContainerCommandStep[] = []
-
-  function extractOutput(
-    res: { stdout?: string; stderr?: string; message?: string } | Error,
-  ): ExecResult {
-    if (res instanceof Error) {
-      const errObj = res as Error & { stdout?: string; stderr?: string; message?: string }
-      return {
-        stdout: typeof errObj.stdout === 'string' ? errObj.stdout : '',
-        stderr:
-          typeof errObj.stderr === 'string'
-            ? errObj.stderr
-            : typeof errObj.message === 'string'
-              ? errObj.message
-              : res.message,
-      }
-    }
-    return {
-      stdout: res.stdout ?? '',
-      stderr: res.stderr ?? res.message ?? '',
-    }
-  }
 
   function pushInitialStep(step: string, cmd: string): number {
     const stepData = {
@@ -117,23 +132,6 @@ export async function executeContainerCommand(
     }
     steps.push(stepData)
     onStep?.(stepData)
-  }
-
-  function getErrorDetails(
-    error: unknown,
-  ): { stack?: string; stdout?: string; stderr?: string; code?: string | number } | undefined {
-    if (typeof error === 'object' && error !== null) {
-      const e = error as Partial<
-        Error & { stdout?: string; stderr?: string; code?: string | number }
-      >
-      return {
-        stack: typeof e.stack === 'string' ? e.stack : undefined,
-        stdout: typeof e.stdout === 'string' ? e.stdout : undefined,
-        stderr: typeof e.stderr === 'string' ? e.stderr : undefined,
-        code: typeof e.code === 'string' || typeof e.code === 'number' ? e.code : undefined,
-      }
-    }
-    return undefined
   }
 
   try {
