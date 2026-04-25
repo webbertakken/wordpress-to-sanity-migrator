@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@sanity/client'
 
 export interface PrerequisiteCheck {
-  id: 'projectId' | 'writeToken' | 'postSchema'
+  id: 'projectId' | 'datasetExists' | 'writeToken' | 'postSchema'
   label: string
   ok: boolean
   detail?: string
@@ -33,6 +33,12 @@ export async function GET() {
 
   if (!projectId || !token) {
     checks.push({
+      id: 'datasetExists',
+      label: `Dataset '${dataset}' exists`,
+      ok: false,
+      detail: 'Cannot verify without project ID and write token',
+    })
+    checks.push({
       id: 'writeToken',
       label: 'SANITY_API_WRITE_TOKEN with write permissions',
       ok: false,
@@ -44,17 +50,69 @@ export async function GET() {
       ok: false,
       detail: 'Cannot verify without project ID and write token',
     })
-    return NextResponse.json({ checks, allOk: false } satisfies PrerequisitesResponse, {
-      headers: { 'Cache-Control': 'no-store' },
+    return json({ checks, allOk: false })
+  }
+
+  // 2. Dataset exists in the project
+  let datasetOk = false
+  try {
+    const r = await fetch(`https://api.sanity.io/v${apiVersion}/projects/${projectId}/datasets`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+    if (r.ok) {
+      const datasets = (await r.json()) as Array<{ name: string }>
+      const names = datasets.map((d) => d.name)
+      if (names.includes(dataset)) {
+        datasetOk = true
+        checks.push({
+          id: 'datasetExists',
+          label: `Dataset '${dataset}' exists`,
+          ok: true,
+          detail: `${datasets.length} dataset${datasets.length === 1 ? '' : 's'} on project: ${names.join(', ')}`,
+        })
+      } else {
+        checks.push({
+          id: 'datasetExists',
+          label: `Dataset '${dataset}' exists`,
+          ok: false,
+          detail: `Project has ${datasets.length} dataset${datasets.length === 1 ? '' : 's'} (${names.join(', ') || 'none'}), but not '${dataset}'`,
+        })
+      }
+    } else if (r.status === 401 || r.status === 403) {
+      checks.push({
+        id: 'datasetExists',
+        label: `Dataset '${dataset}' exists`,
+        ok: false,
+        detail: `Token cannot list datasets (HTTP ${r.status}) — verify the token belongs to project ${projectId}`,
+      })
+    } else if (r.status === 404) {
+      checks.push({
+        id: 'datasetExists',
+        label: `Dataset '${dataset}' exists`,
+        ok: false,
+        detail: `Project '${projectId}' not found (HTTP 404)`,
+      })
+    } else {
+      checks.push({
+        id: 'datasetExists',
+        label: `Dataset '${dataset}' exists`,
+        ok: false,
+        detail: `Datasets endpoint returned HTTP ${r.status}`,
+      })
+    }
+  } catch (error) {
+    checks.push({
+      id: 'datasetExists',
+      label: `Dataset '${dataset}' exists`,
+      ok: false,
+      detail: `Failed to reach Sanity: ${error instanceof Error ? error.message : String(error)}`,
     })
   }
 
   const client = createClient({ projectId, dataset, token, apiVersion, useCdn: false })
 
-  // 2. SANITY_API_WRITE_TOKEN with write permissions
-  // Verified by performing a dry-run mutation. Sanity returns auth errors before
-  // executing the (no-op) mutation, so this is a safe way to verify write access
-  // without touching the dataset.
+  // 3. SANITY_API_WRITE_TOKEN with write permissions — dry-run mutation
   let writeOk = false
   let writeDetail = ''
   try {
@@ -80,14 +138,8 @@ export async function GET() {
     detail: writeDetail,
   })
 
-  // 3. Sanity project has a 'post' schema
-  // The Content Lake API is schemaless, so we can't ask "does the schema have a
-  // post type?" directly without studio-level auth. Instead we look at what's
-  // already in the dataset:
-  //   - 'post' documents exist  → schema in use, ✅
-  //   - dataset is empty        → can't verify, give benefit of the doubt, ✅
-  //   - other types but no post → likely missing post type, ❌
-  if (writeOk) {
+  // 4. 'post' schema in use — content heuristic (Content Lake is schemaless)
+  if (writeOk && datasetOk) {
     try {
       const [postCount, otherCount] = (await client.fetch(
         '[count(*[_type == "post"]), count(*[!(_type match "sanity.*") && _type != "post"])]',
@@ -129,12 +181,15 @@ export async function GET() {
       id: 'postSchema',
       label: "Sanity project has a 'post' schema",
       ok: false,
-      detail: 'Cannot verify without a working write token',
+      detail: !datasetOk
+        ? 'Cannot verify without a valid dataset'
+        : 'Cannot verify without a working write token',
     })
   }
 
-  return NextResponse.json(
-    { checks, allOk: checks.every((c) => c.ok) } satisfies PrerequisitesResponse,
-    { headers: { 'Cache-Control': 'no-store' } },
-  )
+  return json({ checks, allOk: checks.every((c) => c.ok) })
+}
+
+function json(body: PrerequisitesResponse) {
+  return NextResponse.json(body, { headers: { 'Cache-Control': 'no-store' } })
 }
