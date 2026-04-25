@@ -75,7 +75,12 @@ export function blockContentToHtml(
           ?.map((child) => {
             if (child._type !== 'span') return ''
 
-            let text = child.text || ''
+            // Convert any literal newlines in the span text into <br /> tags.
+            // Paragraph blocks should not contain newlines (every line break
+            // becomes its own block during conversion), but other styles such
+            // as headings, blockquotes and list items may legitimately carry
+            // soft breaks that HTML would otherwise collapse to whitespace.
+            let text = (child.text || '').replace(/\n/g, '<br />')
 
             // Apply marks (formatting)
             if (child.marks && child.marks.length > 0) {

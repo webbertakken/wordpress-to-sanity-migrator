@@ -75,6 +75,21 @@ describe('HTML to BlockContent Integration', () => {
       expect(result).toContain('<p>After image</p>')
     })
 
+    it('serialises literal newlines in span text as <br /> tags', () => {
+      const blocks: MigrationBlockContent = [
+        {
+          _type: 'block',
+          _key: '1',
+          style: 'normal',
+          children: [{ _type: 'span', _key: '1', text: 'Line one\nLine two\nLine three' }],
+          markDefs: [],
+        },
+      ]
+
+      const result = blockContentToHtml(blocks)
+      expect(result).toBe('<p>Line one<br />Line two<br />Line three</p>')
+    })
+
     it('handles formatted text with marks', () => {
       const blocks: MigrationBlockContent = [
         {
