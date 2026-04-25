@@ -44,10 +44,31 @@ export interface MigrationImageBlock {
   url: string // Temporary: original URL from WordPress
   localPath?: string // Temporary: local file path after download
   caption?: string
+  alignment?: 'left' | 'center' | 'right'
   // These will be added during import:
   // asset?: { _ref: string; _type: 'reference' }
   // hotspot?: SanityImageHotspot
   // crop?: SanityImageCrop
+}
+
+/**
+ * Plain horizontal-rule-style separator. Has no fields — its presence in the
+ * block content is the value. Renderers decide how to display it.
+ */
+export interface MigrationDividerBlock {
+  _type: 'divider'
+  _key: string
+}
+
+/**
+ * Generic third-party embed (URL + optional caption). Used for iframes that
+ * are not covered by the more specific video block (YouTube/Vimeo).
+ */
+export interface MigrationEmbedBlock {
+  _type: 'embed'
+  _key: string
+  url: string
+  caption?: string
 }
 
 export interface MigrationAudioBlock {
@@ -101,7 +122,12 @@ export interface MigrationTextBlock {
 
 // Migration-specific block content that includes temporary properties
 export type MigrationBlockContent = Array<
-  MigrationTextBlock | MigrationImageBlock | MigrationAudioBlock | MigrationVideoBlock
+  | MigrationTextBlock
+  | MigrationImageBlock
+  | MigrationAudioBlock
+  | MigrationVideoBlock
+  | MigrationDividerBlock
+  | MigrationEmbedBlock
 >
 
 // Types for migration that extend the actual Sanity schema types
