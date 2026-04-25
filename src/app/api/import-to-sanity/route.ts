@@ -175,10 +175,35 @@ function processMediaInContent(
       delete (audioBlock as Record<string, unknown>).url
       delete (audioBlock as Record<string, unknown>).localPath
       return audioBlock
-    } else if (block._type === 'video' && 'localPath' in block) {
-      // For video blocks, just remove the localPath property
+    } else if (block._type === 'video') {
       const videoBlock = { ...block }
+      // YouTube / Vimeo videos stay as URL embeds; only the temporary
+      // localPath (if any) is dropped.
+      if (videoBlock.videoType !== 'url') {
+        delete (videoBlock as Record<string, unknown>).localPath
+        return videoBlock
+      }
+      // Self-hosted files: replace the original URL + localPath with a
+      // Sanity file asset reference. The original WP URL is stripped
+      // because the source site is no longer expected to be live.
+      const assetId =
+        'localPath' in videoBlock && videoBlock.localPath
+          ? mediaAssets.get(videoBlock.localPath)
+          : undefined
       delete (videoBlock as Record<string, unknown>).localPath
+      delete (videoBlock as Record<string, unknown>).url
+      if (assetId) {
+        return {
+          ...videoBlock,
+          videoFile: {
+            _type: 'file' as const,
+            asset: {
+              _type: 'reference' as const,
+              _ref: assetId,
+            },
+          },
+        }
+      }
       return videoBlock
     }
     return block
@@ -364,10 +389,12 @@ export async function POST(request: NextRequest) {
           const sanityDoc = createSanityDocument(record, mediaAssets)
 
           if (testRun) {
-            // In test run, just show what would be created
+            // In test run, show both a one-line summary and the full document
+            // body that would be sent to client.create() so the user can
+            // verify the actual shape, including resolved asset references.
             send({
               type: 'info',
-              message: 'Test run - Document preview:',
+              message: 'Test run — document summary:',
               details: {
                 _type: sanityDoc._type,
                 title: sanityDoc._type === 'post' ? sanityDoc.title : sanityDoc.name,
@@ -382,6 +409,11 @@ export async function POST(request: NextRequest) {
                 mediaInContent: record.transformed.media?.length || 0,
                 mediaTypes: [...new Set(record.transformed.media?.map((m) => m.type) || [])],
               },
+            })
+            send({
+              type: 'info',
+              message: 'Test run — full Sanity document body:',
+              details: sanityDoc,
             })
           } else {
             // Actually create the document

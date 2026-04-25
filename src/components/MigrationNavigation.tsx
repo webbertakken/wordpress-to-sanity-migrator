@@ -24,9 +24,12 @@ export function MigrationNavigation({
           <div className="flex items-center space-x-4">
             <button
               onClick={() => onStepChange(null)}
-              className="text-white font-semibold hover:text-blue-400 transition-colors"
+              className="flex items-center hover:opacity-80 transition-opacity"
+              title="Dashboard"
             >
-              Migration Dashboard
+              {/* SVG logo — next/image gives no benefit for vector assets and adds runtime overhead. */}
+              {/* oxlint-disable-next-line nextjs/no-img-element */}
+              <img src="/logo.svg" alt="WordPress→Sanity" className="h-8 w-auto" />
             </button>
 
             {onResetProgress && completedSteps.size > 0 && (

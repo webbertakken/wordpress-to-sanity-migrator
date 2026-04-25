@@ -1,6 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
+import { existsSync, statSync, createReadStream } from 'fs'
 import path from 'path'
+import type { Readable } from 'stream'
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.bmp': 'image/bmp',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.wmv': 'video/x-ms-wmv',
+}
+
+function getContentType(filePath: string): string {
+  return CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream'
+}
+
+/**
+ * Parse a single-range `Range: bytes=start-end` header. Returns null when
+ * absent or unparseable; the caller falls back to a full-content response.
+ */
+function parseRange(
+  header: string | null,
+  fileSize: number,
+): { start: number; end: number } | null {
+  if (!header) return null
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!match) return null
+
+  const [, startStr, endStr] = match
+  let start = startStr === '' ? NaN : Number.parseInt(startStr, 10)
+  let end = endStr === '' ? NaN : Number.parseInt(endStr, 10)
+
+  // Suffix range: `bytes=-N` -> last N bytes.
+  if (Number.isNaN(start) && !Number.isNaN(end)) {
+    start = Math.max(0, fileSize - end)
+    end = fileSize - 1
+  }
+  // Open-ended range: `bytes=N-` -> from N to end.
+  if (!Number.isNaN(start) && Number.isNaN(end)) {
+    end = fileSize - 1
+  }
+
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= fileSize) {
+    return null
+  }
+  return { start, end: Math.min(end, fileSize - 1) }
+}
+
+/**
+ * Wrap a Node readable stream as a Web ReadableStream so Next.js can pipe
+ * it back to the browser without buffering the entire file in memory.
+ */
+function nodeStreamToWebStream(node: Readable): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      node.on('data', (chunk: Buffer) => controller.enqueue(new Uint8Array(chunk)))
+      node.on('end', () => controller.close())
+      node.on('error', (err) => controller.error(err))
+    },
+    cancel() {
+      node.destroy()
+    },
+  })
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,34 +83,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file path parameter' }, { status: 400 })
     }
 
-    console.log(`Media request for: ${filePath}`)
+    const absolutePath = path.normalize(
+      path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath),
+    )
 
-    // Check if the path is already absolute
-    let absolutePath: string
-    if (path.isAbsolute(filePath)) {
-      // If it's already an absolute path, use it directly
-      absolutePath = filePath
-    } else {
-      // If it's relative, resolve it from the project root
-      absolutePath = path.join(process.cwd(), filePath)
-    }
-
-    // Normalize the path to handle Windows backslashes
-    absolutePath = path.normalize(absolutePath)
-
-    // Ensure the path is within the allowed directories
+    // Restrict access to the input directory.
     const inputDir = path.join(process.cwd(), 'input')
     if (!absolutePath.startsWith(inputDir)) {
-      console.error(`Access denied: ${absolutePath} is outside ${inputDir}`)
       return NextResponse.json(
         { error: 'Access denied: Path outside allowed directory' },
         { status: 403 },
       )
     }
 
-    // Check if file exists
-    if (!fs.existsSync(absolutePath)) {
-      console.error(`File not found: ${absolutePath} (requested path: ${filePath})`)
+    if (!existsSync(absolutePath)) {
       return NextResponse.json(
         {
           error: 'Media file not found',
@@ -47,59 +105,45 @@ export async function GET(request: NextRequest) {
             searchedIn: inputDir,
             suggestion:
               'Please ensure your WordPress uploads directory is copied to input/uploads/',
-            expectedStructure: 'input/uploads/[year]/[month]/[filename]',
           },
         },
         { status: 404 },
       )
     }
 
-    // Read the file
-    const fileBuffer = fs.readFileSync(absolutePath)
+    const stats = statSync(absolutePath)
+    const contentType = getContentType(absolutePath)
 
-    // Determine content type based on file extension
-    const ext = path.extname(absolutePath).toLowerCase()
-    let contentType = 'application/octet-stream'
-
-    switch (ext) {
-      case '.jpg':
-      case '.jpeg':
-        contentType = 'image/jpeg'
-        break
-      case '.png':
-        contentType = 'image/png'
-        break
-      case '.gif':
-        contentType = 'image/gif'
-        break
-      case '.webp':
-        contentType = 'image/webp'
-        break
-      case '.svg':
-        contentType = 'image/svg+xml'
-        break
-      case '.mp3':
-        contentType = 'audio/mpeg'
-        break
-      case '.wav':
-        contentType = 'audio/wav'
-        break
-      case '.ogg':
-        contentType = 'audio/ogg'
-        break
-      case '.mp4':
-        contentType = 'video/mp4'
-        break
-      case '.webm':
-        contentType = 'video/webm'
-        break
+    const baseHeaders: Record<string, string> = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=31536000',
+      'Accept-Ranges': 'bytes',
     }
 
-    // Return the file with appropriate headers
-    return new NextResponse(fileBuffer, {
+    // Range requests — browsers use these to seek through audio/video,
+    // and many <audio> elements need them to determine duration up-front.
+    const range = parseRange(request.headers.get('range'), stats.size)
+    if (range) {
+      const { start, end } = range
+      const stream = nodeStreamToWebStream(createReadStream(absolutePath, { start, end }))
+      return new NextResponse(stream, {
+        status: 206,
+        headers: {
+          ...baseHeaders,
+          'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+          'Content-Length': String(end - start + 1),
+        },
+      })
+    }
+
+    // Full-content response. Stream from disk so large files do not buffer
+    // into memory. Always send Content-Length so the browser can determine
+    // total size (and audio/video duration).
+    const stream = nodeStreamToWebStream(createReadStream(absolutePath))
+    return new NextResponse(stream, {
       headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        ...baseHeaders,
+        'Content-Length': String(stats.size),
       },
     })
   } catch (error) {
@@ -108,7 +152,6 @@ export async function GET(request: NextRequest) {
       {
         error: 'Failed to serve media file',
         message: error instanceof Error ? error.message : 'Unknown error',
-        suggestion: 'Check server logs for more details',
       },
       { status: 500 },
     )

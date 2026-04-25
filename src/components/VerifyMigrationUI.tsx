@@ -833,6 +833,14 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                             min-height: 360px;
                             border: 0;
                           }
+                          /* Video blocks (self-hosted file or external embed). */
+                          .preview-content .video-block iframe,
+                          .preview-content .video-block video {
+                            width: 100%;
+                            max-height: 480px;
+                            border: 0;
+                            background: #000;
+                          }
                         `,
                             }}
                           />

@@ -132,13 +132,25 @@ export interface AudioBlock {
 }
 
 /**
- * Inline video — either hosted on YouTube/Vimeo, or a direct URL.
+ * Inline video — either hosted on YouTube/Vimeo, or a self-hosted file
+ * uploaded to Sanity. The two cases are distinguished by `videoType`:
+ *
+ * - `'youtube'` / `'vimeo'`: external embed referenced by `url`; no asset
+ *   is uploaded to Sanity.
+ * - `'url'`: self-hosted file. After migration `videoFile.asset` carries
+ *   the Sanity file asset reference; the original external `url` field
+ *   is no longer used and may be omitted.
  */
 export interface VideoBlock {
   _key: string
   _type: 'video'
   videoType?: 'youtube' | 'vimeo' | 'url'
-  url: string
+  url?: string
+  videoFile?: {
+    _type: 'file'
+    asset?: SanityReference
+    media?: unknown
+  }
   title?: string
   description?: string
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16'
