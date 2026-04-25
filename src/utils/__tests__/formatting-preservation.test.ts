@@ -1,6 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import { htmlToBlockContent } from '../html-to-portable-text'
 import { parseInlineHTML } from '../parse-inline-html'
+import type { MigrationBlockContent, MigrationTextBlock } from '../../types/migration'
+
+/**
+ * Narrow a block-content element to a text block. Throws when the element
+ * is not a text block so misshapen test expectations fail loudly with a
+ * useful message instead of with a TypeScript widening error.
+ */
+const asTextBlock = (block: MigrationBlockContent[number]): MigrationTextBlock => {
+  if (block._type !== 'block') {
+    throw new Error(`expected text block, got '${block._type}'`)
+  }
+  return block
+}
 
 describe('Formatting Preservation', () => {
   describe('parseInlineHTML', () => {
@@ -86,9 +99,8 @@ describe('Formatting Preservation', () => {
       const result = await htmlToBlockContent(html)
 
       expect(result.content).toHaveLength(1)
-      const block = result.content[0]
+      const block = asTextBlock(result.content[0])
 
-      expect(block._type).toBe('block')
       expect(block.children).toHaveLength(7) // Multiple spans for different formatting
 
       // Check that marks are preserved
@@ -107,13 +119,12 @@ describe('Formatting Preservation', () => {
       const result = await htmlToBlockContent(html)
 
       expect(result.content).toHaveLength(1)
-      expect(result.content[0]._type).toBe('block')
-      expect(result.content[0].style).toBe('blockquote')
+      const block = asTextBlock(result.content[0])
+      expect(block.style).toBe('blockquote')
 
       // Check that formatting is preserved within blockquote
-      const children = result.content[0].children
-      expect(children).toBeDefined()
-      const emphasisSpan = children?.find((child) => child.text === 'emphasis')
+      expect(block.children).toBeDefined()
+      const emphasisSpan = block.children?.find((child) => child.text === 'emphasis')
       expect(emphasisSpan?.marks).toEqual(['strong'])
     })
 
@@ -129,14 +140,15 @@ describe('Formatting Preservation', () => {
       expect(result.content).toHaveLength(2)
 
       // Check first list item
-      expect(result.content[0]._type).toBe('block')
-      expect(result.content[0].listItem).toBe('bullet')
-      const firstItemBold = result.content[0].children?.find((child) => child.text === 'bold')
+      const first = asTextBlock(result.content[0])
+      expect(first.listItem).toBe('bullet')
+      const firstItemBold = first.children?.find((child) => child.text === 'bold')
       expect(firstItemBold?.marks).toEqual(['strong'])
 
       // Check second list item
-      expect(result.content[1].listItem).toBe('bullet')
-      const secondItemItalic = result.content[1].children?.find((child) => child.text === 'italic')
+      const second = asTextBlock(result.content[1])
+      expect(second.listItem).toBe('bullet')
+      const secondItemItalic = second.children?.find((child) => child.text === 'italic')
       expect(secondItemItalic?.marks).toEqual(['em'])
     })
 
@@ -150,8 +162,8 @@ describe('Formatting Preservation', () => {
       const result = await htmlToBlockContent(html)
 
       expect(result.content).toHaveLength(2)
-      expect(result.content[0].listItem).toBe('number')
-      expect(result.content[1].listItem).toBe('number')
+      expect(asTextBlock(result.content[0]).listItem).toBe('number')
+      expect(asTextBlock(result.content[1]).listItem).toBe('number')
     })
 
     it('should preserve formatting in headings', async () => {
@@ -159,9 +171,10 @@ describe('Formatting Preservation', () => {
       const result = await htmlToBlockContent(html)
 
       expect(result.content).toHaveLength(1)
-      expect(result.content[0].style).toBe('h2')
+      const block = asTextBlock(result.content[0])
+      expect(block.style).toBe('h2')
 
-      const boldSpan = result.content[0].children?.find((child) => child.text === 'bold')
+      const boldSpan = block.children?.find((child) => child.text === 'bold')
       expect(boldSpan?.marks).toEqual(['strong'])
     })
 
@@ -179,13 +192,14 @@ describe('Formatting Preservation', () => {
       expect(result.content).toHaveLength(4)
 
       // Check different block types
-      expect(result.content[0].style).toBe('normal')
-      expect(result.content[1].style).toBe('blockquote')
-      expect(result.content[2].listItem).toBe('bullet')
-      expect(result.content[3].style).toBe('normal')
+      expect(asTextBlock(result.content[0]).style).toBe('normal')
+      expect(asTextBlock(result.content[1]).style).toBe('blockquote')
+      expect(asTextBlock(result.content[2]).listItem).toBe('bullet')
+      const last = asTextBlock(result.content[3])
+      expect(last.style).toBe('normal')
 
       // Check code formatting in last paragraph
-      const codeSpan = result.content[3].children?.find((child) => child.text === 'code')
+      const codeSpan = last.children?.find((child) => child.text === 'code')
       expect(codeSpan?.marks).toEqual(['code'])
     })
   })

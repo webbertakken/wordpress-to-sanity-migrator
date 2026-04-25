@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# Pre-commit hook
+#
+# Runs three things, fast first:
+# 1. lint-staged           — prettier + eslint --fix on changed files only
+# 2. yarn typecheck        — whole-project tsc --noEmit (fast incremental)
+# 3. yarn test:run         — full vitest suite (sub-second on this project)
+#
+# Together these are quick enough to run on every commit while catching the
+# vast majority of regressions before they ever reach CI.
+
+set -e
+
+yarn lint-staged
+yarn typecheck
+yarn test:run

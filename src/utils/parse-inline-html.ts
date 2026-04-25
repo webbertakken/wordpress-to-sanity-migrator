@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid'
+import type { MigrationTextBlock } from '../types/migration'
 
 interface SpanNode {
   _type: 'span'
@@ -142,7 +143,7 @@ export function parseInlineHTML(html: string): ParsedInlineContent {
 export function createBlockWithInlineContent(
   html: string,
   style: 'normal' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote' = 'normal',
-) {
+): MigrationTextBlock {
   const { children, markDefs } = parseInlineHTML(html)
 
   return {

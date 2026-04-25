@@ -14,7 +14,17 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix --max-warnings=0"
+    ],
+    "*.{json,md,css,html,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@sanity/client": "^7.6.0",
@@ -37,7 +47,9 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "eslint-plugin-prettier": "^5.5.0",
+    "husky": "^9.1.7",
     "jsdom": "^26.1.0",
+    "lint-staged": "^16.4.0",
     "mysql2": "^3.14.1",
     "node-html-parser": "^7.0.1",
     "prettier": "^3.6.2",
