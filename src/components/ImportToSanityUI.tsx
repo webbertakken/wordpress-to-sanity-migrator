@@ -536,23 +536,43 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
                   >
                     {msg.message}
                   </p>
-                  {msg.details ? (
-                    <pre className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">
-                      {(() => {
+                  {msg.details
+                    ? (() => {
+                        let detailsText: string
+                        let lineCount = 1
                         try {
                           if (typeof msg.details === 'string') {
-                            return msg.details
+                            detailsText = msg.details
                           } else if (typeof msg.details === 'object' && msg.details !== null) {
-                            return JSON.stringify(msg.details, null, 2)
+                            detailsText = JSON.stringify(msg.details, null, 2)
                           } else {
-                            return String(msg.details)
+                            detailsText = String(msg.details)
                           }
+                          lineCount = detailsText.split('\n').length
                         } catch {
-                          return 'Error displaying details'
+                          detailsText = 'Error displaying details'
                         }
-                      })()}
-                    </pre>
-                  ) : null}
+                        // Anything over ~10 lines becomes collapsible so a large
+                        // Sanity document body doesn't dominate the log.
+                        if (lineCount > 10) {
+                          return (
+                            <details className="mt-1">
+                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-200 select-none">
+                                Show details ({lineCount} lines)
+                              </summary>
+                              <pre className="text-xs text-gray-400 mt-1 whitespace-pre-wrap max-h-96 overflow-y-auto bg-gray-950 p-2 rounded">
+                                {detailsText}
+                              </pre>
+                            </details>
+                          )
+                        }
+                        return (
+                          <pre className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">
+                            {detailsText}
+                          </pre>
+                        )
+                      })()
+                    : null}
                   {msg.current && msg.total && (
                     <div className="mt-2">
                       <div className="w-full bg-gray-800 rounded-full h-2">
