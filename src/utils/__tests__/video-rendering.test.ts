@@ -49,10 +49,11 @@ describe('blockContentToHtml — video blocks', () => {
       videoFile: { _type: 'file' },
     }
     const html = blockContentToHtml([block])
-    expect(html).toContain('<video controls preload="metadata">')
+    expect(html).toContain('<video controls preload="metadata" playsinline>')
     expect(html).toContain(
       '<source src="/api/serve-media?path=input%2Fuploads%2F2014%2F07%2Fclip.mp4"',
     )
+    expect(html).toContain('type="video/mp4"')
     expect(html).toContain('class="video-block"')
   })
 

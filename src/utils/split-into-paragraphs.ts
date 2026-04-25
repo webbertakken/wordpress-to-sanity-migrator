@@ -112,8 +112,10 @@ function findPreservedRanges(text: string): BlockRange[] {
  * Every newline (single, double, or more) is treated as a paragraph break.
  */
 function emitParagraphs(raw: string, out: string[]): void {
-  // Treat each <br /> as a newline (paragraph break).
-  let text = raw.replace(/<br\s*\/?>/gi, '\n')
+  // Treat each <br /> as a newline (paragraph break). Allow attributes
+  // (e.g. `<br style="..." />`); WordPress posts often carry legacy
+  // inline-style attributes on <br>.
+  let text = raw.replace(/<br\b[^>]*\/?>/gi, '\n')
   // Unwrap any <p>...</p> wrappers — their content joins the loose text
   // surrounded by paragraph-break markers.
   text = text.replace(/<p\b[^>]*>([\s\S]*?)<\/p\s*>/gi, '\n\n$1\n\n')
