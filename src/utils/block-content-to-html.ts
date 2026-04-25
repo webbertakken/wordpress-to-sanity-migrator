@@ -72,7 +72,24 @@ export function blockContentToHtml(
         const videoSrc = src.startsWith('input/')
           ? `/api/serve-media?path=${encodeURIComponent(src)}`
           : src
-        return `<figure class="video-block"><video controls preload="metadata"><source src="${videoSrc}" /></video>${figcaption}</figure>`
+        // MIME type from the file extension. Without it some browsers
+        // refuse to load <source> children at all, leaving the <video>
+        // element blank.
+        const ext = src.split('.').pop()?.toLowerCase() ?? ''
+        const mimeType =
+          ext === 'mp4'
+            ? 'video/mp4'
+            : ext === 'webm'
+              ? 'video/webm'
+              : ext === 'ogv'
+                ? 'video/ogg'
+                : ext === 'mov'
+                  ? 'video/quicktime'
+                  : ext === 'wmv'
+                    ? 'video/x-ms-wmv'
+                    : ''
+        const typeAttr = mimeType ? ` type="${mimeType}"` : ''
+        return `<figure class="video-block"><video controls preload="metadata" playsinline><source src="${videoSrc}"${typeAttr} /></video>${figcaption}</figure>`
       }
 
       // Handle generic embed blocks (iframes that are not YouTube/Vimeo)

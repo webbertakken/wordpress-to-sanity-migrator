@@ -834,10 +834,16 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                             border: 0;
                           }
                           /* Video blocks (self-hosted file or external embed). */
+                          .preview-content .video-block {
+                            margin: 1rem 0;
+                          }
                           .preview-content .video-block iframe,
                           .preview-content .video-block video {
+                            display: block;
                             width: 100%;
-                            max-height: 480px;
+                            max-width: 720px;
+                            aspect-ratio: 16 / 9;
+                            height: auto;
                             border: 0;
                             background: #000;
                           }
