@@ -3,7 +3,19 @@ import { htmlToBlockContent } from '../html-to-portable-text'
 import { blockContentToHtml } from '../block-content-to-html'
 import { createTestAudioBlock } from './test-helpers'
 // import type { TestBlockContent } from './test-types'
-import type { MigrationAudioBlock } from '../../types/migration'
+import type { MigrationAudioBlock, MigrationBlockContent } from '../../types/migration'
+
+/**
+ * Narrow a block-content element to an audio block. Throws when the element
+ * is not an audio block so test assertions stay unconditional (avoiding
+ * eslint-plugin-jest's `no-conditional-expect`).
+ */
+const asAudioBlock = (block: MigrationBlockContent[number] | undefined): MigrationAudioBlock => {
+  if (!block || block._type !== 'audio') {
+    throw new Error(`expected audio block, got '${block?._type ?? 'undefined'}'`)
+  }
+  return block
+}
 
 describe('Audio Block Conversion', () => {
   describe('WordPress audio block to Sanity audio block', () => {
@@ -23,17 +35,11 @@ describe('Audio Block Conversion', () => {
       expect(result.content.length).toBeGreaterThan(0)
 
       // Find the audio block
-      const audioBlock = result.content.find((block) => block._type === 'audio')
-      expect(audioBlock).toBeDefined()
+      const audioBlock = asAudioBlock(result.content.find((block) => block._type === 'audio'))
 
-      if (audioBlock && audioBlock._type === 'audio') {
-        const migrationAudioBlock = audioBlock as MigrationAudioBlock
-        expect(migrationAudioBlock.url).toBe(
-          'http://example.com/wp-content/uploads/2023/03/sample.wav',
-        )
-        expect(migrationAudioBlock.showControls).toBe(true)
-        expect(migrationAudioBlock.autoplay).toBe(false)
-      }
+      expect(audioBlock.url).toBe('http://example.com/wp-content/uploads/2023/03/sample.wav')
+      expect(audioBlock.showControls).toBe(true)
+      expect(audioBlock.autoplay).toBe(false)
 
       // Check media extraction
       expect(result.media).toBeDefined()
@@ -53,12 +59,9 @@ describe('Audio Block Conversion', () => {
       `
 
       const result = await htmlToBlockContent(wordpressHtml)
-      const audioBlock = result.content.find((block) => block._type === 'audio')
+      const audioBlock = asAudioBlock(result.content.find((block) => block._type === 'audio'))
 
-      expect(audioBlock).toBeDefined()
-      if (audioBlock && audioBlock._type === 'audio') {
-        expect(audioBlock.title).toBe('My Audio Title')
-      }
+      expect(audioBlock.title).toBe('My Audio Title')
     })
 
     it('should handle standalone audio elements', async () => {
@@ -73,15 +76,10 @@ describe('Audio Block Conversion', () => {
       // Should have 3 blocks: paragraph, audio, paragraph
       expect(result.content.length).toBe(3)
 
-      const audioBlock = result.content[1]
-      expect(audioBlock._type).toBe('audio')
-
-      if (audioBlock._type === 'audio') {
-        const migrationAudioBlock = audioBlock as MigrationAudioBlock
-        expect(migrationAudioBlock.url).toBe('http://example.com/music.wav')
-        expect(migrationAudioBlock.showControls).toBe(true)
-        expect(audioBlock.autoplay).toBe(true)
-      }
+      const audioBlock = asAudioBlock(result.content[1])
+      expect(audioBlock.url).toBe('http://example.com/music.wav')
+      expect(audioBlock.showControls).toBe(true)
+      expect(audioBlock.autoplay).toBe(true)
     })
   })
 
@@ -154,12 +152,9 @@ describe('Audio Block Conversion', () => {
       expect(result.content[4]._type).toBe('block') // p
 
       // Verify audio block details
-      const audioBlock = result.content[3]
-      if (audioBlock._type === 'audio') {
-        const migrationAudioBlock = audioBlock as MigrationAudioBlock
-        expect(migrationAudioBlock.title).toBe('Audio description')
-        expect(migrationAudioBlock.url).toBe('http://example.com/audio.mp3')
-      }
+      const audioBlock = asAudioBlock(result.content[3])
+      expect(audioBlock.title).toBe('Audio description')
+      expect(audioBlock.url).toBe('http://example.com/audio.mp3')
 
       // Check media extraction includes both image and audio
       expect(result.media.length).toBe(2)

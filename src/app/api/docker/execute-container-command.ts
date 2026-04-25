@@ -139,7 +139,7 @@ export async function executeContainerCommand(
   try {
     if (command === 'start') {
       // 1. Start MariaDB container
-      const startCmd = `docker run --name ${CONTAINER_NAME} -e MARIADB_ROOT_PASSWORD=\"${DB_PASSWORD}\" -d -p 3306:3306 mariadb:latest`
+      const startCmd = `docker run --name ${CONTAINER_NAME} -e MARIADB_ROOT_PASSWORD="${DB_PASSWORD}" -d -p 3306:3306 mariadb:latest`
       const startIndex = pushInitialStep('Start container', startCmd)
 
       let res: { stdout: string; stderr: string } | Error
@@ -194,7 +194,7 @@ export async function executeContainerCommand(
       await new Promise((resolve) => setTimeout(resolve, 12000))
       updateStep(waitIndex, { stdout: 'Waited 12s' }, true)
       // 3. Create the target database
-      const createDbCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p\"${DB_PASSWORD}\" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"`
+      const createDbCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p"${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"`
       const createDbIndex = pushInitialStep('Create database', createDbCmd)
 
       try {
@@ -207,7 +207,7 @@ export async function executeContainerCommand(
         return { success: false, error: 'Failed to create database', steps }
       }
       // 4. Import the dump
-      const importCmd = `docker exec -i ${CONTAINER_NAME} mariadb -uroot -p\"${DB_PASSWORD}\" ${DB_NAME} < backup.sql`
+      const importCmd = `docker exec -i ${CONTAINER_NAME} mariadb -uroot -p"${DB_PASSWORD}" ${DB_NAME} < backup.sql`
       const importIndex = pushInitialStep('Import dump', importCmd)
 
       try {
@@ -247,7 +247,7 @@ export async function executeContainerCommand(
         return { success: false, error: 'Failed to import dump', steps }
       }
       // 5. Inspect databases
-      const inspectCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p\"${DB_PASSWORD}\" -e "SHOW DATABASES;"`
+      const inspectCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p"${DB_PASSWORD}" -e "SHOW DATABASES;"`
       const inspectIndex = pushInitialStep('Inspect databases', inspectCmd)
 
       try {
@@ -261,7 +261,7 @@ export async function executeContainerCommand(
       }
 
       // Show all tables in the database
-      const listTablesCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p\"${DB_PASSWORD}\" -e "USE ${DB_NAME}; SHOW TABLES;"`
+      const listTablesCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p"${DB_PASSWORD}" -e "USE ${DB_NAME}; SHOW TABLES;"`
       const listTablesIndex = pushInitialStep('List tables', listTablesCmd)
 
       try {
@@ -275,7 +275,7 @@ export async function executeContainerCommand(
       }
 
       // Count posts by type
-      const countPostsCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p\"${DB_PASSWORD}\" -e "USE ${DB_NAME}; SELECT post_type, COUNT(*) as count FROM wp_posts GROUP BY post_type ORDER BY count DESC;"`
+      const countPostsCmd = `docker exec ${CONTAINER_NAME} mariadb -uroot -p"${DB_PASSWORD}" -e "USE ${DB_NAME}; SELECT post_type, COUNT(*) as count FROM wp_posts GROUP BY post_type ORDER BY count DESC;"`
       const countPostsIndex = pushInitialStep('Count posts by type', countPostsCmd)
 
       try {

@@ -335,10 +335,10 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
 
           {/* Import Mode Selection (Production Only) */}
           {!testMode && (
-            <div className="border-t border-gray-600 pt-4">
-              <label className="block text-sm font-medium text-gray-300 mb-3">
+            <fieldset className="border-t border-gray-600 pt-4">
+              <legend className="block text-sm font-medium text-gray-300 mb-3">
                 Production Import Mode:
-              </label>
+              </legend>
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
                   <input
@@ -369,7 +369,7 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
                   </label>
                 </div>
               </div>
-            </div>
+            </fieldset>
           )}
 
           {/* Post Selection */}
