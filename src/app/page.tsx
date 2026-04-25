@@ -33,25 +33,16 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false
 
-    const markIfNot = (stepIndex: number) => {
-      setCompletedSteps((prev) => {
-        if (prev.has(stepIndex)) return prev
-        const next = new Set(prev)
-        next.add(stepIndex)
-        return next
-      })
-    }
-
     const detect = async () => {
-      // Step 0: Docker container running
+      // Step 0: Docker container running (bidirectional — unmarks if torn down)
       try {
         const r = await fetch('/api/docker/container-running')
         if (!cancelled && r.ok) {
           const data = (await r.json()) as { running?: boolean }
-          if (data.running) markIfNot(0)
+          setStepCompletion(0, !!data.running)
         }
       } catch {
-        // ignore — leave step un-marked
+        // ignore — leave step state unchanged
       }
 
       // Step 3 (Import to Sanity) is intentionally never auto-completed.
@@ -68,6 +59,16 @@ export default function Home() {
 
   const markStepCompleted = (stepIndex: number) => {
     setCompletedSteps((prev) => new Set(prev).add(stepIndex))
+  }
+
+  const setStepCompletion = (stepIndex: number, completed: boolean) => {
+    setCompletedSteps((prev) => {
+      if (prev.has(stepIndex) === completed) return prev
+      const next = new Set(prev)
+      if (completed) next.add(stepIndex)
+      else next.delete(stepIndex)
+      return next
+    })
   }
 
   const resetProgress = () => {
@@ -141,7 +142,10 @@ export default function Home() {
             </div>
           </div>
         ) : step === 0 ? (
-          <DockerManagerUI onComplete={() => markStepCompleted(0)} />
+          <DockerManagerUI
+            onComplete={() => markStepCompleted(0)}
+            onIncomplete={() => setStepCompletion(0, false)}
+          />
         ) : step === 1 ? (
           <PrepareMigrationUI onComplete={() => markStepCompleted(1)} />
         ) : step === 2 ? (
