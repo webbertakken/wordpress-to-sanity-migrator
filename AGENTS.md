@@ -6,6 +6,11 @@
 
 - Do not modify or delete any of the files in the `input` folder. They are the data that is
   exclusively meant as input. They are the source of truth.
+- This repository is generic and public. Never commit specifics of any project being
+  migrated — no project names, domain names, studio paths, dataset names, project IDs,
+  author names, or other personal/identifying details. Keep all migration-target
+  specifics out of source, docs, comments, commit messages and tests. If you need
+  examples, use placeholders such as `example.com`.
 
 ## Sanity
 
