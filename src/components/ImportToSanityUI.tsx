@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { MigrationRecord, MediaReference } from '../types/migration'
 import { getContentTitle } from '../types/migration'
 
@@ -62,6 +62,28 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
   const [loadError, setLoadError] = useState<string | null>(null)
   const [prereqs, setPrereqs] = useState<PrerequisitesResponse | null>(null)
   const [prereqsLoading, setPrereqsLoading] = useState(true)
+
+  // Auto-scroll the import progress log to the bottom whenever a new
+  // message arrives, so the latest event is always in view during long
+  // imports. Scrolling is local to the log container, never the page.
+  const logRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [messages])
+
+  // Latest reported (current, total) pair drawn from any progress message,
+  // used to render an overall progress bar below the log.
+  const overallProgress = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i]
+      if (typeof m.current === 'number' && typeof m.total === 'number' && m.total > 0) {
+        return { current: m.current, total: m.total }
+      }
+    }
+    return null
+  })()
 
   useEffect(() => {
     loadAvailablePosts()
@@ -514,7 +536,10 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
           <h3 className="text-lg font-semibold mb-4 text-gray-100">
             {testMode ? 'Test Run' : 'Import'} Progress
           </h3>
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
+          <div
+            ref={logRef}
+            className="bg-gray-900 border border-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto"
+          >
             {messages.map((msg, index) => (
               // Progress log is append-only and never reordered.
               // oxlint-disable-next-line react/no-array-index-key
@@ -590,6 +615,29 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
               </div>
             ))}
           </div>
+          {overallProgress && (
+            // Overall progress bar tracking the latest (current, total) pair
+            // emitted by the import route. Sits directly below the log so it
+            // remains visible regardless of how far the log is scrolled.
+            <div className="mt-3">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>Overall progress</span>
+                <span>
+                  {overallProgress.current} / {overallProgress.total} (
+                  {Math.round((overallProgress.current / overallProgress.total) * 100)}
+                  %)
+                </span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-3 transition-all duration-300"
+                  style={{
+                    width: `${(overallProgress.current / overallProgress.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
