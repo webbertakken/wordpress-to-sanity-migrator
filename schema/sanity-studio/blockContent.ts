@@ -117,7 +117,7 @@ export const blockContent = defineType({
       },
     }),
 
-    // Inline video — YouTube, Vimeo or direct URL.
+    // Inline video — YouTube, Vimeo, or a self-hosted file uploaded to Sanity.
     defineArrayMember({
       type: 'object',
       name: 'video',
@@ -131,7 +131,7 @@ export const blockContent = defineType({
             list: [
               { title: 'YouTube', value: 'youtube' },
               { title: 'Vimeo', value: 'vimeo' },
-              { title: 'Direct URL', value: 'url' },
+              { title: 'Self-hosted file', value: 'url' },
             ],
             layout: 'radio',
           },
@@ -141,8 +141,24 @@ export const blockContent = defineType({
           name: 'url',
           title: 'Video URL',
           type: 'url',
-          description: 'Full URL to the video (YouTube, Vimeo, or direct video URL).',
-          validation: (rule) => rule.required(),
+          description: 'Full external URL (YouTube or Vimeo). Leave empty for self-hosted files.',
+          hidden: ({ parent }) => parent?.videoType === 'url',
+          validation: (rule) =>
+            rule.custom((value, context) => {
+              const parent = context.parent as { videoType?: string } | undefined
+              if (parent?.videoType !== 'url' && !value) {
+                return 'URL is required for YouTube and Vimeo videos'
+              }
+              return true
+            }),
+        }),
+        defineField({
+          name: 'videoFile',
+          title: 'Video file',
+          type: 'file',
+          options: { accept: 'video/*' },
+          description: 'Self-hosted video file. Used when videoType is "url".',
+          hidden: ({ parent }) => parent?.videoType !== 'url',
         }),
         defineField({
           name: 'title',

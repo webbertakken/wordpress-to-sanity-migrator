@@ -91,8 +91,13 @@ export interface MigrationVideoBlock {
   _type: 'video'
   _key: string
   videoType: 'youtube' | 'vimeo' | 'url'
-  url: string
-  localPath?: string // Temporary: local file path (only for 'url' type)
+  url?: string // For YouTube/Vimeo: the embed URL. For self-hosted: original WP URL (stripped on import)
+  localPath?: string // Temporary: local file path for self-hosted files (videoType === 'url')
+  // For self-hosted files (videoType === 'url'), `videoFile.asset` is filled
+  // in during import-to-sanity once the file has been uploaded.
+  videoFile?: {
+    _type: 'file'
+  }
   title?: string
   description?: string
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16'

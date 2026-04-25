@@ -191,6 +191,12 @@ function extractVideoBlocks(
         url: src,
         localPath: mediaRef?.localPath,
       }
+      // For self-hosted files, mark the videoFile placeholder so the
+      // import step knows to upload the local file and attach the asset
+      // reference (mirrors how audio blocks carry an empty `audioFile`).
+      if (videoType === 'url' && mediaRef?.localPath) {
+        videoBlock.videoFile = { _type: 'file' }
+      }
 
       // Only add title if caption exists
       if (caption) {
@@ -217,13 +223,17 @@ function extractVideoBlocks(
     const src = srcMatch[1]
     const mediaRef = mediaMap.get(src)
 
-    blocks.push({
+    const videoBlock: MigrationVideoBlock = {
       _type: 'video',
       _key: nanoid(),
       videoType: 'url',
       url: src,
       localPath: mediaRef?.localPath,
-    })
+    }
+    if (mediaRef?.localPath) {
+      videoBlock.videoFile = { _type: 'file' }
+    }
+    blocks.push(videoBlock)
   }
 
   // Also match WordPress embed blocks for YouTube/Vimeo

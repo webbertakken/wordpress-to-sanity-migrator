@@ -46,6 +46,35 @@ export function blockContentToHtml(
         return '<hr />'
       }
 
+      // Handle video blocks. YouTube / Vimeo become a generic <iframe>
+      // embed; self-hosted files use a <video> element pointed at the
+      // local file (the local-path -> /api/serve-media rewrite is done by
+      // the preview's processContentForPreview helper).
+      if (block._type === 'video') {
+        const videoBlock = block as {
+          videoType?: 'youtube' | 'vimeo' | 'url'
+          url?: string
+          localPath?: string
+          title?: string
+          aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16'
+        }
+        const title = videoBlock.title || ''
+        const figcaption = title ? `<figcaption>${title}</figcaption>` : ''
+
+        if (videoBlock.videoType === 'youtube' || videoBlock.videoType === 'vimeo') {
+          const url = videoBlock.url || ''
+          if (!url) return ''
+          return `<figure class="video-block"><iframe src="${url}" loading="lazy" referrerpolicy="no-referrer" allowfullscreen></iframe>${figcaption}</figure>`
+        }
+
+        const src = videoBlock.localPath || videoBlock.url || ''
+        if (!src) return ''
+        const videoSrc = src.startsWith('input/')
+          ? `/api/serve-media?path=${encodeURIComponent(src)}`
+          : src
+        return `<figure class="video-block"><video controls preload="metadata"><source src="${videoSrc}" /></video>${figcaption}</figure>`
+      }
+
       // Handle generic embed blocks (iframes that are not YouTube/Vimeo)
       if (block._type === 'embed') {
         const embedBlock = block as { url?: string; caption?: string }
