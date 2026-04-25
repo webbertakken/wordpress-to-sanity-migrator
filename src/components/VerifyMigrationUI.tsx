@@ -725,6 +725,54 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
                           <style
                             dangerouslySetInnerHTML={{
                               __html: `
+                          /* Typography defaults — spacing must be visible without
+                             relying on @tailwindcss/typography (the prose plugin
+                             is not installed in this project). */
+                          .preview-content p {
+                            margin: 0 0 1em 0;
+                            line-height: 1.6;
+                          }
+                          .preview-content p:last-child {
+                            margin-bottom: 0;
+                          }
+                          .preview-content h1,
+                          .preview-content h2,
+                          .preview-content h3,
+                          .preview-content h4,
+                          .preview-content h5,
+                          .preview-content h6 {
+                            margin: 1.25em 0 0.5em 0;
+                            font-weight: 600;
+                            line-height: 1.3;
+                          }
+                          .preview-content h1 { font-size: 1.6em; }
+                          .preview-content h2 { font-size: 1.4em; }
+                          .preview-content h3 { font-size: 1.2em; }
+                          .preview-content blockquote {
+                            margin: 1em 0;
+                            padding-left: 1em;
+                            border-left: 3px solid #d1d5db;
+                            color: #4b5563;
+                            font-style: italic;
+                          }
+                          .preview-content ul,
+                          .preview-content ol {
+                            margin: 0 0 1em 1.5em;
+                            padding: 0;
+                          }
+                          .preview-content ul { list-style: disc; }
+                          .preview-content ol { list-style: decimal; }
+                          .preview-content li { margin: 0.25em 0; }
+                          .preview-content a {
+                            color: #2563eb;
+                            text-decoration: underline;
+                          }
+                          .preview-content code {
+                            background: #f3f4f6;
+                            padding: 0.1em 0.3em;
+                            border-radius: 3px;
+                            font-size: 0.9em;
+                          }
                           .preview-content img {
                             max-width: 100%;
                             height: auto;

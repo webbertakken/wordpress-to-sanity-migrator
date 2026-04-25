@@ -48,3 +48,8 @@ next-env.d.ts
 # IDE
 .idea/
 .vscode/
+
+# Agent skill symlinks (resolve to outside the repo)
+.claude/skills/
+.pi/skills/
+

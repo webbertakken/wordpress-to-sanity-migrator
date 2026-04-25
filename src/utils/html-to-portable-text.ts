@@ -2,6 +2,7 @@
 import { nanoid } from 'nanoid'
 import { extractMediaFromContent, mapMediaToLocalPaths } from './media-processor'
 import { parseInlineHTML, createBlockWithInlineContent } from './parse-inline-html'
+import { splitIntoParagraphs } from './split-into-paragraphs'
 import type {
   MediaReference,
   MigrationBlockContent,
@@ -296,8 +297,14 @@ function extractImageBlocks(
 // Removed unused extractTextBlocks function - text extraction is handled in htmlToBlockContent
 
 export async function htmlToBlockContent(
-  html: string,
+  rawHtml: string,
 ): Promise<{ content: MigrationBlockContent; media: MediaReference[] }> {
+  // WordPress stores `post_content` without `<p>` tags around plain text,
+  // and uses a mix of `\r\n`, `\n\n` and `<br />` for line breaks.
+  // Normalise the input so every line break becomes its own `<p>` block
+  // before the block-level extractor below runs.
+  const html = splitIntoParagraphs(rawHtml)
+
   // First extract and map media references
   const mediaRefs = extractMediaFromContent(html)
   const mappedMedia = mapMediaToLocalPaths(mediaRefs)
