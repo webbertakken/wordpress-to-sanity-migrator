@@ -1,4 +1,4 @@
-import type { Post, Page, BlockContent } from '../../input/sanity.types'
+import type { Post, Page, BlockContent } from '../../schema/types'
 
 export interface MediaReference {
   url: string
