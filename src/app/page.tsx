@@ -54,16 +54,7 @@ export default function Home() {
         // ignore — leave step un-marked
       }
 
-      // Step 3: Sanity prerequisites all met
-      try {
-        const r = await fetch('/api/check-sanity-prerequisites')
-        if (!cancelled && r.ok) {
-          const data = (await r.json()) as { allOk?: boolean }
-          if (data.allOk) markIfNot(3)
-        }
-      } catch {
-        // ignore
-      }
+      // Step 3 (Import to Sanity) is intentionally never auto-completed.
     }
 
     detect()
