@@ -138,6 +138,13 @@ describe('expandWordPressShortcodes', () => {
       )
     })
 
+    it('consumes the closing [/audio] tag when present (paired form)', () => {
+      const html = '[audio wav="http://example.com/clip.wav"][/audio]'
+      const out = expandWordPressShortcodes(html)
+      expect(out).toBe('<audio src="http://example.com/clip.wav" controls></audio>')
+      expect(out).not.toContain('[/audio]')
+    })
+
     it('end-to-end: produces an audio block', async () => {
       const html = '[audio mp3="http://example.com/clip.mp3"]'
 
@@ -163,6 +170,13 @@ describe('expandWordPressShortcodes', () => {
       expect(expandWordPressShortcodes(html)).toBe(
         '<video src="http://example.com/clip.mp4" controls width="640" height="360"></video>',
       )
+    })
+
+    it('consumes the closing [/video] tag when present (paired form)', () => {
+      const html = '[video mp4="http://example.com/clip.mp4"][/video]'
+      const out = expandWordPressShortcodes(html)
+      expect(out).toBe('<video src="http://example.com/clip.mp4" controls></video>')
+      expect(out).not.toContain('[/video]')
     })
 
     it('end-to-end: produces a video block with videoType=url', async () => {

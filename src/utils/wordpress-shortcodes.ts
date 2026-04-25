@@ -72,40 +72,50 @@ function expandCaptionShortcodes(html: string): string {
 }
 
 /**
- * Convert `[audio attrs]` into a `<audio>` element. WordPress's audio
- * shortcode accepts `src`, `mp3`, `wav`, `m4a`, `ogg`, `wma` and `flac`
- * source attributes; the first one present wins.
+ * Convert `[audio attrs]` (or `[audio attrs]…[/audio]`) into a `<audio>`
+ * element. WordPress's audio shortcode accepts `src`, `mp3`, `wav`,
+ * `m4a`, `ogg`, `wma` and `flac` source attributes; the first one
+ * present wins. The closing `[/audio]` tag, when present, is consumed
+ * so it does not leak into the output as literal text.
  */
 function expandAudioShortcodes(html: string): string {
-  return html.replace(/\[audio([^\]]*)\]/gi, (match, attrString: string) => {
-    const attrs = parseAttributes(attrString)
-    const src =
-      attrs.src ?? attrs.mp3 ?? attrs.wav ?? attrs.m4a ?? attrs.ogg ?? attrs.wma ?? attrs.flac
-    if (!src) return match
-    const autoplay = 'autoplay' in attrs ? ' autoplay' : ''
-    const loop = 'loop' in attrs ? ' loop' : ''
-    return `<audio src="${src}" controls${autoplay}${loop}></audio>`
-  })
+  return html.replace(
+    /\[audio([^\]]*)\](?:[\s\S]*?\[\/audio\])?/gi,
+    (match, attrString: string) => {
+      const attrs = parseAttributes(attrString)
+      const src =
+        attrs.src ?? attrs.mp3 ?? attrs.wav ?? attrs.m4a ?? attrs.ogg ?? attrs.wma ?? attrs.flac
+      if (!src) return match
+      const autoplay = 'autoplay' in attrs ? ' autoplay' : ''
+      const loop = 'loop' in attrs ? ' loop' : ''
+      return `<audio src="${src}" controls${autoplay}${loop}></audio>`
+    },
+  )
 }
 
 /**
- * Convert `[video attrs]` into a `<video>` element.
+ * Convert `[video attrs]` (or `[video attrs]…[/video]`) into a `<video>`
+ * element. The closing `[/video]` tag, when present, is consumed so it
+ * does not leak into the output as literal text.
  */
 function expandVideoShortcodes(html: string): string {
-  return html.replace(/\[video([^\]]*)\]/gi, (match, attrString: string) => {
-    const attrs = parseAttributes(attrString)
-    const src =
-      attrs.src ?? attrs.mp4 ?? attrs.webm ?? attrs.ogv ?? attrs.m4v ?? attrs.flv ?? attrs.wmv
-    if (!src) return match
-    const dimensions = [
-      attrs.width ? `width="${attrs.width}"` : '',
-      attrs.height ? `height="${attrs.height}"` : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
-    const dimensionsAttr = dimensions ? ` ${dimensions}` : ''
-    return `<video src="${src}" controls${dimensionsAttr}></video>`
-  })
+  return html.replace(
+    /\[video([^\]]*)\](?:[\s\S]*?\[\/video\])?/gi,
+    (match, attrString: string) => {
+      const attrs = parseAttributes(attrString)
+      const src =
+        attrs.src ?? attrs.mp4 ?? attrs.webm ?? attrs.ogv ?? attrs.m4v ?? attrs.flv ?? attrs.wmv
+      if (!src) return match
+      const dimensions = [
+        attrs.width ? `width="${attrs.width}"` : '',
+        attrs.height ? `height="${attrs.height}"` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+      const dimensionsAttr = dimensions ? ` ${dimensions}` : ''
+      return `<video src="${src}" controls${dimensionsAttr}></video>`
+    },
+  )
 }
 
 /**
