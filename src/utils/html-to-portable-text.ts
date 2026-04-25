@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { extractMediaFromContent, mapMediaToLocalPaths } from './media-processor'
 import { parseInlineHTML, createBlockWithInlineContent } from './parse-inline-html'
 import { splitIntoParagraphs } from './split-into-paragraphs'
+import { expandWordPressShortcodes } from './wordpress-shortcodes'
 import type {
   MediaReference,
   MigrationBlockContent,
@@ -200,6 +201,31 @@ function extractVideoBlocks(
     }
   }
 
+  // Also match standalone <video> elements (e.g. from the [video] shortcode
+  // or hand-written HTML). These are direct file URLs (videoType = 'url').
+  // Skip ones that already live inside a wp-block-video figure (handled above).
+  const standaloneVideoPattern = /<video([^>]*)>[\s\S]*?<\/video>/gi
+  while ((match = standaloneVideoPattern.exec(html)) !== null) {
+    const beforeMatch = html.substring(0, match.index)
+    const openFigures = (beforeMatch.match(/<figure[^>]*>/g) || []).length
+    const closedFigures = (beforeMatch.match(/<\/figure>/g) || []).length
+    if (openFigures > closedFigures) continue
+
+    const videoAttrs = match[1]
+    const srcMatch = /src="([^"]+)"/.exec(videoAttrs)
+    if (!srcMatch) continue
+    const src = srcMatch[1]
+    const mediaRef = mediaMap.get(src)
+
+    blocks.push({
+      _type: 'video',
+      _key: nanoid(),
+      videoType: 'url',
+      url: src,
+      localPath: mediaRef?.localPath,
+    })
+  }
+
   // Also match WordPress embed blocks for YouTube/Vimeo
   const embedPattern = /<!-- wp:embed\s+({[^}]+})[\s\S]*?-->[\s\S]*?<!-- \/wp:embed -->/gi
 
@@ -377,11 +403,16 @@ function isVideoIframe(html: string): boolean {
 export async function htmlToBlockContent(
   rawHtml: string,
 ): Promise<{ content: MigrationBlockContent; media: MediaReference[] }> {
-  // WordPress stores `post_content` without `<p>` tags around plain text,
-  // and uses a mix of `\r\n`, `\n\n` and `<br />` for line breaks.
-  // Normalise the input so every line break becomes its own `<p>` block
-  // before the block-level extractor below runs.
-  const html = splitIntoParagraphs(rawHtml)
+  // 1. Expand WordPress shortcodes ([caption], [audio], [video] and the
+  //    [ddownload] placeholder) into equivalent HTML so the rest of the
+  //    pipeline can pick them up with the existing extractors.
+  const expanded = expandWordPressShortcodes(rawHtml)
+
+  // 2. WordPress stores `post_content` without `<p>` tags around plain text,
+  //    and uses a mix of `\r\n`, `\n\n` and `<br />` for line breaks.
+  //    Normalise the input so every line break becomes its own `<p>` block
+  //    before the block-level extractor below runs.
+  const html = splitIntoParagraphs(expanded)
 
   // First extract and map media references
   const mediaRefs = extractMediaFromContent(html)
