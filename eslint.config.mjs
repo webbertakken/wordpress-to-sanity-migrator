@@ -10,6 +10,12 @@ const compat = new FlatCompat({
 })
 
 const eslintConfig = [
+  // schema/sanity-studio/ contains drop-in Sanity schema source files for
+  // target studios to copy. They import from `sanity`, which is not a
+  // dependency of this repository, so they are intentionally not linted here.
+  {
+    ignores: ['schema/sanity-studio/**'],
+  },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     files: ['**/*.{js,jsx,ts,tsx}'],

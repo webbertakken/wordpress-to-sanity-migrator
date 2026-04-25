@@ -1,5 +1,5 @@
 // Test-specific types that allow partial media blocks for testing purposes
-import type { BlockContent } from '@/../input/sanity.types'
+import type { BlockContent } from '@/../schema/types'
 
 // Allow both Sanity BlockContent and test-specific partial blocks
 export type TestBlockContent =

@@ -3,7 +3,7 @@ import { createClient } from '@sanity/client'
 import fs from 'fs/promises'
 import path from 'path'
 import { MigrationRecord, getContentTitle, MigrationBlockContent } from '@/types/migration'
-import type { Post, Page, BlockContent } from '@/../input/sanity.types'
+import type { Post, Page, BlockContent } from '@/../schema/types'
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
@@ -74,7 +74,7 @@ async function uploadMedia(
 
 // Document types that match the actual Sanity schema
 type SanityDocumentPost = Omit<Post, '_id' | '_createdAt' | '_updatedAt' | '_rev'>
-type SanityDocumentPage = Omit<Page, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'pageBuilder'>
+type SanityDocumentPage = Omit<Page, '_id' | '_createdAt' | '_updatedAt' | '_rev'>
 type SanityDocument = SanityDocumentPost | SanityDocumentPage
 
 function createSanityDocument(

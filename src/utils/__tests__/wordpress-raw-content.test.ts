@@ -12,21 +12,14 @@ import type { MigrationImageBlock, MigrationTextBlock } from '../../types/migrat
  */
 describe('htmlToBlockContent with raw WordPress post_content', () => {
   it('treats every newline as a paragraph break', async () => {
-    const html =
-      'First paragraph here.\r\nWith a separate line.\r\n\r\nSecond paragraph here.'
+    const html = 'First paragraph here.\r\nWith a separate line.\r\n\r\nSecond paragraph here.'
 
     const { content } = await htmlToBlockContent(html)
 
     expect(content).toHaveLength(3)
-    expect((content[0] as MigrationTextBlock).children?.[0].text).toBe(
-      'First paragraph here.',
-    )
-    expect((content[1] as MigrationTextBlock).children?.[0].text).toBe(
-      'With a separate line.',
-    )
-    expect((content[2] as MigrationTextBlock).children?.[0].text).toBe(
-      'Second paragraph here.',
-    )
+    expect((content[0] as MigrationTextBlock).children?.[0].text).toBe('First paragraph here.')
+    expect((content[1] as MigrationTextBlock).children?.[0].text).toBe('With a separate line.')
+    expect((content[2] as MigrationTextBlock).children?.[0].text).toBe('Second paragraph here.')
   })
 
   it('extracts a trailing image and splits the preceding text into paragraphs', async () => {
@@ -36,12 +29,8 @@ describe('htmlToBlockContent with raw WordPress post_content', () => {
     const { content } = await htmlToBlockContent(html)
 
     expect(content).toHaveLength(3)
-    expect((content[0] as MigrationTextBlock).children?.[0].text).toBe(
-      'Closing remarks line one,',
-    )
-    expect((content[1] as MigrationTextBlock).children?.[0].text).toBe(
-      'Closing remarks line two',
-    )
+    expect((content[0] as MigrationTextBlock).children?.[0].text).toBe('Closing remarks line one,')
+    expect((content[1] as MigrationTextBlock).children?.[0].text).toBe('Closing remarks line two')
     expect((content[2] as MigrationImageBlock).url).toBe('http://example.com/img.jpg')
   })
 

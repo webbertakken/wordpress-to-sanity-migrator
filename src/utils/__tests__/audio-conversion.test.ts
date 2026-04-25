@@ -41,9 +41,7 @@ describe('Audio Block Conversion', () => {
 
       const audioMedia = result.media.find((m) => m.type === 'audio')
       expect(audioMedia).toBeDefined()
-      expect(audioMedia?.url).toBe(
-        'http://example.com/wp-content/uploads/2023/03/sample.wav',
-      )
+      expect(audioMedia?.url).toBe('http://example.com/wp-content/uploads/2023/03/sample.wav')
     })
 
     it('should handle audio with figcaption', async () => {
