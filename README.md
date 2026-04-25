@@ -1,6 +1,7 @@
 # 🚚 WordPress → Sanity Migrator
 
-A visual, 4-step dashboard for migrating WordPress content into Sanity. From SQL dump to live import — without the headaches.
+A visual, 4-step dashboard for migrating WordPress content into Sanity. From SQL dump to live import
+— without the headaches.
 
 ---
 
@@ -52,8 +53,7 @@ SANITY_API_VERSION=...
 
 ### 4️⃣ Test import a single post, then go for real
 
-![Test Import](docs/04-import-test-run.png)
-![Full Import](docs/05-import-for-real.png)
+![Test Import](docs/04-import-test-run.png) ![Full Import](docs/05-import-for-real.png)
 
 ---
 
