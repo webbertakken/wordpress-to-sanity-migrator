@@ -26,9 +26,11 @@ export function parseInlineHTML(html: string): ParsedInlineContent {
   const children: SpanNode[] = []
   const markDefs: LinkMarkDef[] = []
 
-  // Handle line breaks by replacing them with newlines
+  // Handle line breaks by replacing them with newlines. The regex tolerates
+  // any attributes (e.g. `<br style="..." />`) and any whitespace, since
+  // WordPress posts often carry inline-style attributes on `<br>`.
   const processedHtml = html
-    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<br\b[^>]*\/?>/gi, '\n')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -68,56 +70,81 @@ export function parseInlineHTML(html: string): ParsedInlineContent {
         })
       }
     } else if (tag) {
-      // This is an HTML tag
-      const tagLower = tag.toLowerCase()
+      // This is an HTML tag. Pull out the tag name independent of any
+      // attributes, e.g. `<b style="...">` -> 'b'. Without this the older
+      // `startsWith('<b>')` check missed every short tag that carried even
+      // a single attribute, so bold / italic / underline / strike-through
+      // wrappers from WordPress posts (which often have inline `style`
+      // attributes for legacy colour overrides) were silently dropped.
+      const openMatch = /^<([a-zA-Z][a-zA-Z0-9]*)/.exec(tag)
+      const closeMatch = /^<\/([a-zA-Z][a-zA-Z0-9]*)/.exec(tag)
+      const tagName = (openMatch?.[1] ?? closeMatch?.[1] ?? '').toLowerCase()
+      const isClosing = closeMatch !== null
 
-      // Handle opening tags
-      if (tagLower.startsWith('<strong') || tagLower.startsWith('<b>')) {
-        markStack.push('strong')
-      } else if (tagLower.startsWith('<em') || tagLower.startsWith('<i>')) {
-        markStack.push('em')
-      } else if (tagLower.startsWith('<u>')) {
-        markStack.push('underline')
-      } else if (
-        tagLower.startsWith('<strike') ||
-        tagLower.startsWith('<s>') ||
-        tagLower.startsWith('<del>')
-      ) {
-        markStack.push('strike-through')
-      } else if (tagLower.startsWith('<code')) {
-        markStack.push('code')
-      } else if (tagLower.startsWith('<a ')) {
-        // Extract href from link
-        const hrefMatch = /href=["']([^"']+)["']/.exec(tag)
-        if (hrefMatch) {
-          const markDefKey = nanoid()
-          linkStack.push({ key: markDefKey, href: hrefMatch[1] })
-          markDefs.push({
-            _key: markDefKey,
-            _type: 'link',
-            href: hrefMatch[1],
-          })
+      if (!isClosing) {
+        switch (tagName) {
+          case 'strong':
+          case 'b':
+            markStack.push('strong')
+            break
+          case 'em':
+          case 'i':
+            markStack.push('em')
+            break
+          case 'u':
+            markStack.push('underline')
+            break
+          case 'strike':
+          case 's':
+          case 'del':
+            markStack.push('strike-through')
+            break
+          case 'code':
+            markStack.push('code')
+            break
+          case 'a': {
+            const hrefMatch = /href=["']([^"']+)["']/i.exec(tag)
+            if (hrefMatch) {
+              const markDefKey = nanoid()
+              linkStack.push({ key: markDefKey, href: hrefMatch[1] })
+              markDefs.push({
+                _key: markDefKey,
+                _type: 'link',
+                href: hrefMatch[1],
+              })
+            }
+            break
+          }
         }
-      }
-
-      // Handle closing tags
-      else if (tagLower === '</strong>' || tagLower === '</b>') {
-        const index = markStack.lastIndexOf('strong')
-        if (index >= 0) markStack.splice(index, 1)
-      } else if (tagLower === '</em>' || tagLower === '</i>') {
-        const index = markStack.lastIndexOf('em')
-        if (index >= 0) markStack.splice(index, 1)
-      } else if (tagLower === '</u>') {
-        const index = markStack.lastIndexOf('underline')
-        if (index >= 0) markStack.splice(index, 1)
-      } else if (tagLower === '</strike>' || tagLower === '</s>' || tagLower === '</del>') {
-        const index = markStack.lastIndexOf('strike-through')
-        if (index >= 0) markStack.splice(index, 1)
-      } else if (tagLower === '</code>') {
-        const index = markStack.lastIndexOf('code')
-        if (index >= 0) markStack.splice(index, 1)
-      } else if (tagLower === '</a>') {
-        linkStack.pop()
+      } else {
+        const popLast = (mark: string) => {
+          const index = markStack.lastIndexOf(mark)
+          if (index >= 0) markStack.splice(index, 1)
+        }
+        switch (tagName) {
+          case 'strong':
+          case 'b':
+            popLast('strong')
+            break
+          case 'em':
+          case 'i':
+            popLast('em')
+            break
+          case 'u':
+            popLast('underline')
+            break
+          case 'strike':
+          case 's':
+          case 'del':
+            popLast('strike-through')
+            break
+          case 'code':
+            popLast('code')
+            break
+          case 'a':
+            linkStack.pop()
+            break
+        }
       }
     }
   }
