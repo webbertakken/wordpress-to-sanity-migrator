@@ -215,51 +215,27 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
     }
 
     // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue: string | number
-      let bValue: string | number
-
+    const sortKey = (record: MigrationRecord): string | number => {
+      const t = record.transformed
       switch (sortBy) {
         case 'title':
-          aValue = (
-            a.transformed._type === 'post'
-              ? (a.transformed as SanityPostContent).title
-              : (a.transformed as SanityPageContent).name
+          return (
+            t._type === 'post' ? (t as SanityPostContent).title : (t as SanityPageContent).name
           ).toLowerCase()
-          bValue = (
-            b.transformed._type === 'post'
-              ? (b.transformed as SanityPostContent).title
-              : (b.transformed as SanityPageContent).name
-          ).toLowerCase()
-          break
         case 'date':
-          aValue = new Date(
-            a.transformed._type === 'post'
-              ? (a.transformed as SanityPostContent).date || a.original.post_date
-              : a.original.post_date,
+          return new Date(
+            t._type === 'post'
+              ? (t as SanityPostContent).date || record.original.post_date
+              : record.original.post_date,
           ).getTime()
-          bValue = new Date(
-            b.transformed._type === 'post'
-              ? (b.transformed as SanityPostContent).date || b.original.post_date
-              : b.original.post_date,
-          ).getTime()
-          break
         case 'type':
-          aValue = a.transformed._type
-          bValue = b.transformed._type
-          break
-        default:
-          aValue = (
-            a.transformed._type === 'post'
-              ? (a.transformed as SanityPostContent).title
-              : (a.transformed as SanityPageContent).name
-          ).toLowerCase()
-          bValue = (
-            b.transformed._type === 'post'
-              ? (b.transformed as SanityPostContent).title
-              : (b.transformed as SanityPageContent).name
-          ).toLowerCase()
+          return t._type
       }
+    }
+
+    filtered.sort((a, b) => {
+      const aValue = sortKey(a)
+      const bValue = sortKey(b)
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)

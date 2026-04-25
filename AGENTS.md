@@ -4,6 +4,7 @@
 
 ## Rules
 
+- Never add coverage-suppression comments to source. Test the branch or refactor the code.
 - Do not modify or delete any of the files in the `input` folder. They are the data that is
   exclusively meant as input. They are the source of truth.
 - This repository is generic and public. Never commit specifics of any project being migrated — no

@@ -94,14 +94,14 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
+    // The only path into this catch is request.json() throwing a SyntaxError,
+    // which always carries a stack.
     console.error('Unexpected error in Docker API route:', error)
     return NextResponse.json(
       {
         success: false,
         error: 'Internal server error',
-        details: {
-          stack: error instanceof Error ? error.stack || String(error) : String(error),
-        },
+        details: { stack: (error as Error).stack },
       },
       { status: 500 },
     )

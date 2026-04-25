@@ -295,98 +295,94 @@ export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete, on
             <h2 className="text-xl font-bold mb-4 text-red-400">Error</h2>
             <div className="space-y-4">
               {(() => {
-                try {
-                  const errorData = JSON.parse(error)
-                  const details = errorData.details || {}
-                  const hasTechnicalDetails = Boolean(
-                    (typeof details.stack === 'string' && details.stack.trim()) ||
-                      (typeof details.cwd === 'string' && details.cwd.trim()) ||
-                      (typeof details.stdout === 'string' && details.stdout.trim()) ||
-                      (typeof details.stderr === 'string' && details.stderr.trim()) ||
-                      typeof details.code === 'number',
-                  )
-                  return (
-                    <>
-                      <p className="text-red-200 text-lg">{errorData.message}</p>
-                      {details.guidance && (
-                        <div className="mt-4">
-                          <div className="bg-yellow-900/50 border border-yellow-700 rounded p-4">
-                            <h3 className="text-lg font-semibold text-yellow-300 mb-2 flex items-center">
-                              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              What to do:
-                            </h3>
-                            <div className="text-yellow-100">
-                              {details.guidance.split('\n').map((line: string, index: number) => (
-                                // Each line is rendered statically; index is fine.
-                                // oxlint-disable-next-line react/no-array-index-key
-                                <p key={index} className="mb-2">
-                                  {line}
-                                </p>
-                              ))}
-                            </div>
+                // `error` is always a JSON-stringified payload (set via
+                // setError(JSON.stringify(...)) or setError(err.message) only
+                // when err.message itself is valid JSON), so JSON.parse here
+                // never throws.
+                const errorData = JSON.parse(error)
+                const details = errorData.details || {}
+                const hasTechnicalDetails = Boolean(
+                  (typeof details.stack === 'string' && details.stack.trim()) ||
+                    (typeof details.cwd === 'string' && details.cwd.trim()) ||
+                    (typeof details.stdout === 'string' && details.stdout.trim()) ||
+                    (typeof details.stderr === 'string' && details.stderr.trim()) ||
+                    typeof details.code === 'number',
+                )
+                return (
+                  <>
+                    <p className="text-red-200 text-lg">{errorData.message}</p>
+                    {details.guidance && (
+                      <div className="mt-4">
+                        <div className="bg-yellow-900/50 border border-yellow-700 rounded p-4">
+                          <h3 className="text-lg font-semibold text-yellow-300 mb-2 flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            What to do:
+                          </h3>
+                          <div className="text-yellow-100">
+                            {details.guidance.split('\n').map((line: string, index: number) => (
+                              // Each line is rendered statically; index is fine.
+                              // oxlint-disable-next-line react/no-array-index-key
+                              <p key={index} className="mb-2">
+                                {line}
+                              </p>
+                            ))}
                           </div>
                         </div>
-                      )}
-                      {hasTechnicalDetails && (
-                        <>
-                          <h3 className="text-lg font-semibold text-red-300 mb-2">
-                            Technical Details:
-                          </h3>
-                          <div className="bg-gray-900/50 p-4 rounded text-sm text-gray-300">
-                            {details.stack && details.stack.trim() && (
-                              <details className="mb-4">
-                                <summary className="font-semibold mb-2 cursor-pointer">
-                                  Error Stack
-                                </summary>
-                                <div className="whitespace-pre-wrap mt-2 text-xs">
-                                  {details.stack}
-                                </div>
-                              </details>
-                            )}
-                            {details.cwd && details.cwd.trim() && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Working Directory:</h4>
-                                <div>{details.cwd}</div>
+                      </div>
+                    )}
+                    {hasTechnicalDetails && (
+                      <>
+                        <h3 className="text-lg font-semibold text-red-300 mb-2">
+                          Technical Details:
+                        </h3>
+                        <div className="bg-gray-900/50 p-4 rounded text-sm text-gray-300">
+                          {details.stack && details.stack.trim() && (
+                            <details className="mb-4">
+                              <summary className="font-semibold mb-2 cursor-pointer">
+                                Error Stack
+                              </summary>
+                              <div className="whitespace-pre-wrap mt-2 text-xs">
+                                {details.stack}
                               </div>
-                            )}
-                            {details.stdout && details.stdout.trim() && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Command Output:</h4>
-                                <div className="whitespace-pre-wrap">{details.stdout}</div>
+                            </details>
+                          )}
+                          {details.cwd && details.cwd.trim() && (
+                            <div className="mb-4">
+                              <h4 className="font-semibold mb-2">Working Directory:</h4>
+                              <div>{details.cwd}</div>
+                            </div>
+                          )}
+                          {details.stdout && details.stdout.trim() && (
+                            <div className="mb-4">
+                              <h4 className="font-semibold mb-2">Command Output:</h4>
+                              <div className="whitespace-pre-wrap">{details.stdout}</div>
+                            </div>
+                          )}
+                          {details.stderr && details.stderr.trim() && (
+                            <div className="mb-4">
+                              <h4 className="font-semibold mb-2">Error Output:</h4>
+                              <div className="whitespace-pre-wrap text-red-400">
+                                {details.stderr}
                               </div>
-                            )}
-                            {details.stderr && details.stderr.trim() && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Error Output:</h4>
-                                <div className="whitespace-pre-wrap text-red-400">
-                                  {details.stderr}
-                                </div>
-                              </div>
-                            )}
-                            {typeof details.code === 'number' && details.code !== undefined && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Exit Code:</h4>
-                                <div>{details.code}</div>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )
-                } catch {
-                  return (
-                    <div>
-                      <p className="text-red-200">Could not parse error as JSON.</p>
-                    </div>
-                  )
-                }
+                            </div>
+                          )}
+                          {typeof details.code === 'number' && details.code !== undefined && (
+                            <div className="mb-4">
+                              <h4 className="font-semibold mb-2">Exit Code:</h4>
+                              <div>{details.code}</div>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
               })()}
             </div>
           </div>

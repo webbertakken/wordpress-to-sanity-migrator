@@ -36,7 +36,7 @@ interface ImportToSanityUIProps {
   onComplete?: () => void
 }
 
-function getMessageIcon(type: string): string {
+function getMessageIcon(type: ImportProgress['type']): string {
   switch (type) {
     case 'success':
       return '✅'
@@ -46,8 +46,6 @@ function getMessageIcon(type: string): string {
       return '⏳'
     case 'info':
       return 'ℹ️'
-    default:
-      return '•'
   }
 }
 
@@ -168,7 +166,8 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
           return hasMedia
         })
         .map((record: MigrationRecord) => {
-          const media: MediaReference[] = record.transformed?.media || []
+          // Filter above guarantees a non-empty media array on transformed.
+          const media = record.transformed.media as MediaReference[]
           return {
             id: record.original.ID,
             title: getContentTitle(record.transformed),

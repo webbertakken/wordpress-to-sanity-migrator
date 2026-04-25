@@ -8,7 +8,8 @@
   },
   "rules": {
     "react/react-in-jsx-scope": "off",
-    "eslint/no-await-in-loop": "off"
+    "eslint/no-await-in-loop": "off",
+    "vitest/require-mock-type-parameters": "off"
   },
   "env": {
     "browser": true,
