@@ -1,0 +1,24 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-label="WordPress to Sanity"
+>
+  <defs>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#21759b" />
+      <stop offset="100%" stop-color="#f03e2f" />
+    </linearGradient>
+  </defs>
+  <!-- Dark, slightly-rounded tile so the icon sits well on light and dark UIs alike. -->
+  <rect width="64" height="64" rx="14" fill="#0f172a" />
+  <!-- Single arrow shaft + head, gradient-filled WordPress blue -> Sanity red. -->
+  <path
+    d="M14 32 H44 M36 22 L46 32 L36 42"
+    stroke="url(#flow)"
+    stroke-width="6"
+    fill="none"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
