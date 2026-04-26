@@ -1,5 +1,12 @@
 # 🚚 WordPress → Sanity Migrator
 
+[![License: MIT](https://img.shields.io/github/license/webbertakken/wordpress-to-sanity-migrator)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/webbertakken/wordpress-to-sanity-migrator/pulls)
+[![CI](https://github.com/webbertakken/wordpress-to-sanity-migrator/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/webbertakken/wordpress-to-sanity-migrator/actions/workflows/main.yaml)
+[![Coverage](https://codecov.io/gh/webbertakken/wordpress-to-sanity-migrator/branch/main/graph/badge.svg)](https://codecov.io/gh/webbertakken/wordpress-to-sanity-migrator)
+[![Code style: Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4?logo=prettier&logoColor=white)](https://prettier.io)
+[![Linter: oxlint](https://img.shields.io/badge/linter-oxlint-000)](https://oxc.rs/docs/guide/usage/linter.html)
+
 A visual, 4-step dashboard for migrating WordPress content into Sanity. From SQL dump to live import
 — without the headaches.
 

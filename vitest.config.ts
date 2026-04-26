@@ -14,7 +14,8 @@ export default defineConfig({
     reporters: ['verbose'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html', 'json-summary'],
+      // `lcov` is what Codecov consumes; the rest are for local viewing.
+      reporter: ['text', 'html', 'json-summary', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         '**/*.d.ts',
