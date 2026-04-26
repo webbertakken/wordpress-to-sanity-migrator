@@ -248,6 +248,26 @@ describe('SanityContentTransformer aggregate helpers', () => {
     expect(SanityContentTransformer.getWordCount(post)).toBe(1)
   })
 
+  it('treats a block whose children all have empty text as zero text (covers the falsy text branch)', () => {
+    const post = SanityContentTransformer.fromData({
+      title: 'X',
+      slug: 'x',
+      content: [
+        {
+          _type: 'block',
+          _key: 'k1',
+          style: 'normal',
+          markDefs: [],
+          children: [
+            { _type: 'span', _key: 's1', text: '' },
+            { _type: 'span', _key: 's2' } as never,
+          ],
+        },
+      ],
+    })
+    expect(SanityContentTransformer.getWordCount(post)).toBe(0)
+  })
+
   it('treats blocks with no children as zero text', () => {
     const post = SanityContentTransformer.fromData({
       title: 'X',

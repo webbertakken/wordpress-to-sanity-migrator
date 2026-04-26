@@ -303,10 +303,10 @@ export const DockerManagerUI: React.FC<DockerManagerUIProps> = ({ onComplete, on
                 const details = errorData.details || {}
                 const hasTechnicalDetails = Boolean(
                   (typeof details.stack === 'string' && details.stack.trim()) ||
-                    (typeof details.cwd === 'string' && details.cwd.trim()) ||
-                    (typeof details.stdout === 'string' && details.stdout.trim()) ||
-                    (typeof details.stderr === 'string' && details.stderr.trim()) ||
-                    typeof details.code === 'number',
+                  (typeof details.cwd === 'string' && details.cwd.trim()) ||
+                  (typeof details.stdout === 'string' && details.stdout.trim()) ||
+                  (typeof details.stderr === 'string' && details.stderr.trim()) ||
+                  typeof details.code === 'number',
                 )
                 return (
                   <>

@@ -76,6 +76,13 @@ describe('extractMediaFromContent', () => {
     const result = extractMediaFromContent('<img alt="no source" /><audio></audio><video></video>')
     expect(result).toEqual([])
   })
+
+  it('skips <source> children without a src attribute inside audio/video', () => {
+    const result = extractMediaFromContent(
+      '<audio><source type="audio/mpeg" /></audio><video><source type="video/mp4" /></video>',
+    )
+    expect(result).toEqual([])
+  })
 })
 
 describe('findLocalPath', () => {
@@ -103,6 +110,20 @@ describe('findLocalPath', () => {
     mockedExistsSync.mockReturnValue(true)
     mockedReaddirSync.mockReturnValue([buildEntry('different.jpg', false)] as never)
     expect(findLocalPath('http://example.com/uploads/photo.jpg')).toBeNull()
+  })
+
+  it('keeps walking when a sub-directory does not contain the file (covers if (found) false)', () => {
+    mockedExistsSync.mockReturnValue(true)
+    // First level: an empty subdirectory followed by the matching file.
+    mockedReaddirSync
+      .mockImplementationOnce(
+        () => [buildEntry('empty-dir', true), buildEntry('photo.jpg', false)] as never,
+      )
+      // Second level (recursive into 'empty-dir'): no matches.
+      .mockImplementationOnce(() => [] as never)
+
+    const result = findLocalPath('https://example.com/wp-content/uploads/photo.jpg')
+    expect(result).toBe(path.join(process.cwd(), 'input', 'uploads', 'photo.jpg'))
   })
 
   it('returns null when readdirSync throws (e.g. permission denied)', () => {

@@ -133,6 +133,18 @@ describe('PrepareMigrationUI — happy path', () => {
     await waitFor(() => expect(screen.getByText(/Processing Log:/)).toBeInTheDocument())
   })
 
+  it('handles a progress frame without a numeric progress value (covers the missing-progress branch)', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      sseResponse([
+        { type: 'progress', step: 'a', message: 'no-percent' },
+        { type: 'result', result: { message: 'done' } },
+      ]),
+    )
+    render(<PrepareMigrationUI />)
+    await userEvent.click(screen.getByRole('button', { name: /Run Prepare Migration/ }))
+    await waitFor(() => expect(screen.getByText(/no-percent/)).toBeInTheDocument())
+  })
+
   it('clears the log when "Clear Log" is clicked', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
       sseResponse([
@@ -237,6 +249,18 @@ describe('PrepareMigrationUI — error rendering', () => {
     render(<PrepareMigrationUI />)
     await userEvent.click(screen.getByRole('button', { name: /Run Prepare Migration/ }))
     await waitFor(() => expect(screen.getByText(/No response body/)).toBeInTheDocument())
+  })
+
+  it('ignores SSE frames with an unknown type (covers the final else-if not-taken branch)', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      sseResponse([
+        { type: 'unknown' as never, message: 'no-op' },
+        { type: 'result', result: { message: 'still here' } },
+      ]),
+    )
+    render(<PrepareMigrationUI />)
+    await userEvent.click(screen.getByRole('button', { name: /Run Prepare Migration/ }))
+    await waitFor(() => expect(screen.getByText('still here')).toBeInTheDocument())
   })
 
   it('warns and ignores invalid SSE data lines while still processing the result', async () => {

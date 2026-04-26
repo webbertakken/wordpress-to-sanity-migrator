@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           # Pinned to match `volta.node` in package.json.
-          node-version: '22.16.0'
+          node-version: '24.14.1'
 
       - name: Enable Corepack
         # Activates the project-pinned Yarn version (packageManager field).

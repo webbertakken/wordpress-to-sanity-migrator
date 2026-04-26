@@ -137,16 +137,20 @@ export type MigrationBlockContent = Array<
 
 // Types for migration that extend the actual Sanity schema types
 // We omit the system fields that are added by Sanity at creation time
-export interface SanityPostContent
-  extends Omit<Post, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'content' | 'author'> {
+export interface SanityPostContent extends Omit<
+  Post,
+  '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'content' | 'author'
+> {
   content?: MigrationBlockContent // Use migration-specific type during transformation
   media: MediaReference[]
   // Additional fields for migration purposes
   body?: string
 }
 
-export interface SanityPageContent
-  extends Omit<Page, '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'pageBuilder'> {
+export interface SanityPageContent extends Omit<
+  Page,
+  '_id' | '_createdAt' | '_updatedAt' | '_rev' | 'pageBuilder'
+> {
   media: MediaReference[]
 }
 

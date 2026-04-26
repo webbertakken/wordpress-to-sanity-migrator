@@ -50,6 +50,25 @@ describe('htmlToBlockContent — lists', () => {
     const { content } = await htmlToBlockContent('<ul></ul>')
     expect(content).toEqual([])
   })
+
+  it('skips empty <li> elements (covers the early-return branch in the list extractor)', async () => {
+    const { content } = await htmlToBlockContent('<ul><li></li><li>real</li><li>   </li></ul>')
+    const items = content.filter(
+      (b) => (b as { listItem?: string }).listItem === 'bullet',
+    ) as Array<{ children: { text: string }[] }>
+    expect(items).toHaveLength(1)
+    expect(items[0].children[0].text).toBe('real')
+  })
+
+  it('skips a non-video iframe found inside a wp-block-video figure (covers !YouTube && !Vimeo continue)', async () => {
+    // The figure is wp-block-video so the figure path goes through
+    // extractVideoBlocks; the inner iframe scan then finds a non-video iframe
+    // and continues past it.
+    const html =
+      '<figure class="wp-block-video"><iframe src="https://twitter.com/x"></iframe></figure>'
+    const { content } = await htmlToBlockContent(html)
+    expect(content.find((b) => b._type === 'video')).toBeUndefined()
+  })
 })
 
 describe('htmlToBlockContent — embeds and iframes', () => {
@@ -224,6 +243,17 @@ describe('htmlToBlockContent — figures and standalone media', () => {
     expect(content.find((b) => b._type === 'video')).toBeUndefined()
   })
 
+  it('skips a standalone <audio> tag without a src attribute', async () => {
+    const { content } = await htmlToBlockContent('<audio></audio>')
+    expect(content.find((b) => b._type === 'audio')).toBeUndefined()
+  })
+
+  it('skips a wp-block-audio figure with audio that has no src', async () => {
+    const html = '<figure class="wp-block-audio"><audio></audio></figure>'
+    const { content } = await htmlToBlockContent(html)
+    expect(content.find((b) => b._type === 'audio')).toBeUndefined()
+  })
+
   it('skips audio nested inside an unrelated figure (not wp-block-audio)', async () => {
     // The standalone-audio scan walks the whole HTML; ensure the inside-figure
     // detector keeps the inner <audio> from being double-counted.
@@ -294,6 +324,15 @@ describe('htmlToBlockContent — text content', () => {
     const { content } = await htmlToBlockContent('<blockquote><p>One</p><p>Two</p></blockquote>')
     const quotes = content.filter((b) => (b as { style?: string }).style === 'blockquote')
     expect(quotes.length).toBe(2)
+  })
+
+  it('skips empty <p> children inside a blockquote (covers content.trim() falsy branch)', async () => {
+    const { content } = await htmlToBlockContent(
+      '<blockquote><p></p><p>real</p><p>   </p></blockquote>',
+    )
+    const quotes = content.filter((b) => (b as { style?: string }).style === 'blockquote')
+    expect(quotes).toHaveLength(1)
+    expect((quotes[0] as { children: { text: string }[] }).children[0].text).toBe('real')
   })
 
   it('falls back to the inner text when a blockquote has no <p> children', async () => {

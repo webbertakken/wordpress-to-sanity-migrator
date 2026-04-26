@@ -54,10 +54,23 @@ describe('analyzeHtmlTags', () => {
   it('counts tags, identifies covered/uncovered media tags, and collects src URLs', async () => {
     existsSyncMock.mockReturnValue(true)
     const data: MigrationRecord[] = [
+      // First record: introduces img+iframe (covers the !has=true branches), a
+      // second img-with-src (covers the !has=false branch), and an img with an
+      // empty src="" (covers the `if (src)` else branch — [src] selector still
+      // matches but the value is falsy).
       buildRecord(
-        '<p>Hello</p><img src="http://e/x.jpg" /><iframe src="https://yt/embed"></iframe>',
+        '<p>Hello</p>' +
+          '<img src="http://e/x.jpg" />' +
+          '<img src="http://e/x2.jpg" />' +
+          '<img src="" />' +
+          '<iframe src="https://yt/embed"></iframe>',
       ),
-      buildRecord('<embed src="http://e/y.swf" /><object>test</object>'),
+      // Second record: re-emits img and iframe so the analyzer hits both
+      // `tagsWithSrc.has(tagName)` AND `allMediaWithSrc.has(tagName)` true
+      // branches when merging.
+      buildRecord(
+        '<embed src="http://e/y.swf" /><object>test</object><img src="http://e/x2.jpg" /><iframe src="https://yt/embed2"></iframe>',
+      ),
     ]
     readFileSyncMock.mockReturnValue(JSON.stringify(data) as never)
 
@@ -72,8 +85,12 @@ describe('analyzeHtmlTags', () => {
     expect(result.uncoveredMediaTags.has('img')).toBe(false) // covered
     expect(result.tagFrequency.get('img')).toBeGreaterThan(0)
     expect(result.mediaWithSrc.has('img')).toBe(true)
-    expect(result.mediaWithSrc.get('img')).toContain('http://e/x.jpg')
-    expect(result.mediaWithSrc.get('iframe')).toContain('https://yt/embed')
+    expect(result.mediaWithSrc.get('img')).toEqual(
+      expect.arrayContaining(['http://e/x.jpg', 'http://e/x2.jpg']),
+    )
+    expect(result.mediaWithSrc.get('iframe')).toEqual(
+      expect.arrayContaining(['https://yt/embed', 'https://yt/embed2']),
+    )
   })
 })
 

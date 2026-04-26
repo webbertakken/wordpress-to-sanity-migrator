@@ -123,6 +123,13 @@ describe('DockerManagerUI — error rendering', () => {
     expect(screen.getByText(/try start or stop/)).toBeInTheDocument()
   })
 
+  it('falls back to the generic flow when the non-OK JSON response lacks error+details fields', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(jsonResponse({ ok: false }, { status: 400 }))
+    render(<DockerManagerUI />)
+    await userEvent.click(screen.getByRole('button', { name: /Start Container/ }))
+    await waitFor(() => expect(screen.getByText(/Unexpected error occurred/)).toBeInTheDocument())
+  })
+
   it('falls back to a structured Unexpected error when JSON parsing fails for a non-OK response', async () => {
     const broken = new Response('not-json', { status: 500 })
     vi.spyOn(global, 'fetch').mockResolvedValue(broken)
@@ -285,6 +292,18 @@ describe('DockerManagerUI — error rendering', () => {
     expect(screen.queryByText('Working Directory:')).not.toBeInTheDocument()
     expect(screen.queryByText('Command Output:')).not.toBeInTheDocument()
     expect(screen.queryByText('Error Output:')).not.toBeInTheDocument()
+  })
+
+  it('ignores SSE frames with an unknown type (covers the final else-if not-taken branch)', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      sseResponse([
+        { type: 'unknown' as never, message: 'no-op' },
+        { type: 'result', result: { message: 'still here' } },
+      ]),
+    )
+    render(<DockerManagerUI />)
+    await userEvent.click(screen.getByRole('button', { name: /Start Container/ }))
+    await waitFor(() => expect(screen.getByText('still here')).toBeInTheDocument())
   })
 
   it('warns and ignores invalid SSE frames', async () => {

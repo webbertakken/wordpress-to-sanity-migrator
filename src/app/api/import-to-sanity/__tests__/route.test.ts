@@ -540,6 +540,27 @@ describe('POST /api/import-to-sanity — production import', () => {
     expect(body).toContain('Page 5')
   })
 
+  it('skips re-uploading media that is already in mediaAssets (covers the !mediaRef.found else branch)', async () => {
+    // Two records share the same media file; the second iteration finds the
+    // mediaRef already in mediaAssets, so the `if (mediaRef.found && !has)`
+    // branch is skipped and the `else if (!mediaRef.found)` is also skipped
+    // — covering the latter's else path.
+    const shared = {
+      type: 'image' as const,
+      url: 'http://e/shared.jpg',
+      localPath: '/shared.jpg',
+      found: true,
+    }
+    postContent([
+      sampleRecord({ id: 1, media: [shared] }),
+      sampleRecord({ id: 2, media: [shared] }),
+    ])
+    uploadMock.mockResolvedValue({ _id: 'asset-shared' })
+    await readSse(await POST(postRequest({})))
+    // Only one upload despite two records referring to the file.
+    expect(uploadMock).toHaveBeenCalledTimes(1)
+  })
+
   it('handles a self-hosted video block without a localPath (no asset attached)', async () => {
     const record = sampleRecord({ id: 1 })
     record.transformed.content = [
