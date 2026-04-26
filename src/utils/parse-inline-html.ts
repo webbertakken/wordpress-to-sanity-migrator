@@ -50,7 +50,7 @@ export function parseInlineHTML(html: string): ParsedInlineContent {
   let match
 
   while ((match = regex.exec(processedHtml)) !== null) {
-    const [, tag, text] = match
+    const [, , text] = match
 
     if (text) {
       // This is text content
@@ -69,7 +69,9 @@ export function parseInlineHTML(html: string): ParsedInlineContent {
           marks: currentMarks.length > 0 ? currentMarks : undefined,
         })
       }
-    } else if (tag) {
+    } else {
+      // The regex alternation guarantees the tag capture is set when text isn't.
+      const tag = match[1]
       // This is an HTML tag. Pull out the tag name independent of any
       // attributes, e.g. `<b style="...">` -> 'b'. Without this the older
       // `startsWith('<b>')` check missed every short tag that carried even

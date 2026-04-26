@@ -268,32 +268,21 @@ function extractVideoBlocks(
     }
   }
 
-  // Also match iframe embeds (common for YouTube/Vimeo)
+  // Also match iframe embeds (common for YouTube/Vimeo). The capture group
+  // guarantees a non-empty src; the YouTube/Vimeo check filters out other
+  // hosts (which the caller routes to the generic embed extractor).
   const iframePattern = /<iframe[^>]*src="([^"]+)"[^>]*>/gi
-
   while ((match = iframePattern.exec(html)) !== null) {
-    const src = match[0]
-    const urlMatch = /src="([^"]+)"/.exec(src)
-
-    if (urlMatch && urlMatch[1]) {
-      const url = urlMatch[1]
-
-      // Only process if it's a video embed
-      if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com')) {
-        let videoType: 'youtube' | 'vimeo' = 'youtube'
-        if (url.includes('vimeo.com')) {
-          videoType = 'vimeo'
-        }
-
-        const videoBlock: MigrationVideoBlock = {
-          _type: 'video',
-          _key: nanoid(),
-          videoType,
-          url,
-        }
-        blocks.push(videoBlock)
-      }
-    }
+    const url = match[1]
+    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be')
+    const isVimeo = url.includes('vimeo.com')
+    if (!isYouTube && !isVimeo) continue
+    blocks.push({
+      _type: 'video',
+      _key: nanoid(),
+      videoType: isVimeo ? 'vimeo' : 'youtube',
+      url,
+    })
   }
 
   return blocks
@@ -541,66 +530,50 @@ export async function htmlToBlockContent(
       const imageBlocks = extractImageBlocks(element, mediaMap)
       blocks.push(...imageBlocks)
     } else if (element.startsWith('<p')) {
-      const textMatch = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(element)
-      if (textMatch && textMatch[1].trim()) {
-        const block = createBlockWithInlineContent(textMatch[1], 'normal')
-        blocks.push(block)
-      }
-    } else if (element.match(/^<h[1-6]/)) {
-      const headingMatch = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/i.exec(element)
-      if (headingMatch && headingMatch[2].trim()) {
+      // splitIntoParagraphs above filters out empty <p>, so the inner is
+      // always non-empty; the `.exec` is guaranteed to match by the pattern
+      // routing.
+      const textMatch = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(element)!
+      blocks.push(createBlockWithInlineContent(textMatch[1], 'normal'))
+    } else if (element.startsWith('<h')) {
+      const headingMatch = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/i.exec(element)!
+      if (headingMatch[2].trim()) {
         const level = `h${headingMatch[1]}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
-        const block = createBlockWithInlineContent(headingMatch[2], level)
-        blocks.push(block)
+        blocks.push(createBlockWithInlineContent(headingMatch[2], level))
       }
     } else if (element.startsWith('<blockquote')) {
-      const blockquoteMatch = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/i.exec(element)
-      if (blockquoteMatch && blockquoteMatch[1].trim()) {
-        // Extract paragraphs from blockquote
-        const innerHtml = blockquoteMatch[1]
-        const paragraphs = innerHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [innerHtml]
-
-        paragraphs.forEach((p) => {
-          const pMatch = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(p)
-          const content = pMatch ? pMatch[1] : p
-          if (content.trim()) {
-            const block = createBlockWithInlineContent(content, 'blockquote')
-            blocks.push(block)
-          }
+      const blockquoteMatch = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/i.exec(element)!
+      const innerHtml = blockquoteMatch[1]
+      // A blockquote with paragraphs becomes one block per <p>; otherwise the
+      // raw inner is used as a single block.
+      const paragraphs = innerHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) ?? [innerHtml]
+      paragraphs.forEach((p) => {
+        const pMatch = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(p)
+        const content = pMatch ? pMatch[1] : p
+        if (content.trim()) {
+          blocks.push(createBlockWithInlineContent(content, 'blockquote'))
+        }
+      })
+    } else {
+      // Last branch in the cascade: <ul>/<ol>. The pattern routing guarantees
+      // we are looking at one of those.
+      const listMatch = /<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/i.exec(element)!
+      const listType = listMatch[1] === 'ul' ? 'bullet' : 'number'
+      const items = listMatch[2].match(/<li[^>]*>([\s\S]*?)<\/li>/gi) ?? []
+      items.forEach((item) => {
+        const itemMatch = /<li[^>]*>([\s\S]*?)<\/li>/i.exec(item)!
+        if (!itemMatch[1].trim()) return
+        const { children, markDefs } = parseInlineHTML(itemMatch[1])
+        blocks.push({
+          _type: 'block',
+          _key: nanoid(),
+          style: 'normal',
+          listItem: listType,
+          level: 1,
+          children: children.length > 0 ? children : [{ _type: 'span', _key: nanoid(), text: '' }],
+          markDefs,
         })
-      }
-    } else if (element.match(/^<(ul|ol)/)) {
-      const listMatch = /<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/i.exec(element)
-      if (listMatch) {
-        const listType = listMatch[1] === 'ul' ? 'bullet' : 'number'
-        const listHtml = listMatch[2]
-        const items = listHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || []
-
-        items.forEach((item) => {
-          const itemMatch = /<li[^>]*>([\s\S]*?)<\/li>/i.exec(item)
-          if (itemMatch && itemMatch[1].trim()) {
-            const { children, markDefs } = parseInlineHTML(itemMatch[1])
-            blocks.push({
-              _type: 'block',
-              _key: nanoid(),
-              style: 'normal',
-              listItem: listType,
-              level: 1,
-              children:
-                children.length > 0
-                  ? children
-                  : [
-                      {
-                        _type: 'span',
-                        _key: nanoid(),
-                        text: '',
-                      },
-                    ],
-              markDefs,
-            })
-          }
-        })
-      }
+      })
     }
   }
 

@@ -76,6 +76,13 @@ describe('extractMediaFromContent', () => {
     const result = extractMediaFromContent('<img alt="no source" /><audio></audio><video></video>')
     expect(result).toEqual([])
   })
+
+  it('skips <source> children without a src attribute inside audio/video', () => {
+    const result = extractMediaFromContent(
+      '<audio><source type="audio/mpeg" /></audio><video><source type="video/mp4" /></video>',
+    )
+    expect(result).toEqual([])
+  })
 })
 
 describe('findLocalPath', () => {

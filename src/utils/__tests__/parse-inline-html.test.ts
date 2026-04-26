@@ -89,6 +89,13 @@ describe('parseInlineHTML', () => {
     expect(children).toEqual([])
   })
 
+  it('silently ignores closing tags that have no matching opener (covers the popLast no-op branch)', () => {
+    const { children } = parseInlineHTML('</strong>plain</em></u></s></code></a>')
+    expect(children).toHaveLength(1)
+    expect(children[0].text).toBe('plain')
+    expect(children[0].marks).toBeUndefined()
+  })
+
   it('emits a single fallback span when the loop produced no children but stripped text is non-empty', () => {
     // A bare "<" (no matching ">") slips through both regex alternations:
     // it cannot match a tag, and the text alternation excludes "<". The

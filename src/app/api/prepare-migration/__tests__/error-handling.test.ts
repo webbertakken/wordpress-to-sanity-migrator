@@ -96,6 +96,11 @@ describe('handleMigrationError', () => {
     expect(result.message).toBe('Unknown error')
   })
 
+  it('returns "Unknown error" for null-prototype objects with no recognised fields (covers the toString-absent branch)', () => {
+    const noProto = Object.create(null)
+    expect(handleMigrationError(noProto).message).toBe('Unknown error')
+  })
+
   it('returns "An unexpected database error occurred" for unmatched DB error patterns via fallthrough', () => {
     // No DB pattern => falls through to MigrationError, but DatabaseConnectionError
     // alone for an empty string returns the default guidance.
