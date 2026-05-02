@@ -4228,6 +4228,9 @@ __metadata:
     react-dom: "npm:^19.2.5"
     tailwindcss: "npm:^4.2.4"
     vitest: "npm:^4.1.5"
+  dependenciesMeta:
+    sharp:
+      built: true
   languageName: unknown
   linkType: soft
 
