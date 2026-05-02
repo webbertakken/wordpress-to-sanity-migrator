@@ -18,28 +18,46 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Read Node version from mise.toml
+        id: node
+        run:
+          echo "version=$(grep -E '^node\s*=' mise.toml | sed -E 's/.*"([^"]+)".*/\1/')" >>
+          "$GITHUB_OUTPUT"
+
+      - name: Install package manager (from package.json)
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # Pinned to match `volta.node` in package.json.
-          node-version: '24.14.1'
+          node-version: ${{ steps.node.outputs.version }}
 
-      - name: Enable Corepack
-        # Activates the project-pinned Yarn version (packageManager field).
-        run: corepack enable
+      - name: Resolve yarn cache folder
+        id: yarn-config
+        run: echo "cacheFolder=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
 
-      - name: Cache Yarn install
+      - name: Restore yarn install cache (node_modules + cacheFolder + install-state)
+        id: yarn-cache
         uses: actions/cache@v4
         with:
           path: |
-            .yarn/cache
+            node_modules
+            ${{ steps.yarn-config.outputs.cacheFolder }}
             .yarn/install-state.gz
-          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          key:
+            yarn-${{ runner.os }}-node${{ steps.node.outputs.version }}-${{ hashFiles('yarn.lock')
+            }}
           restore-keys: |
-            yarn-${{ runner.os }}-
+            yarn-${{ runner.os }}-node${{ steps.node.outputs.version }}-
 
       - name: Install dependencies
-        run: yarn install --immutable
+        env:
+          YARN_ENABLE_HARDENED_MODE: 'false'
+        run: |
+          case "$(yarn --version)" in 1.*) echo 'expected up-to-date yarn version'; exit 1 ;; esac
+          yarn install --immutable
 
       - name: Format check
         run: yarn prettier --check .
