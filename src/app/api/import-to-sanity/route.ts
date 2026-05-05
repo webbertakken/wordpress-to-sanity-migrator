@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@sanity/client'
 import fs from 'fs/promises'
+import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
-import { MigrationRecord, getContentTitle, MigrationBlockContent } from '@/types/migration'
 import type { Post, Page, BlockContent } from '@/../schema/types'
+import { MigrationRecord, getContentTitle, MigrationBlockContent } from '@/types/migration'
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',

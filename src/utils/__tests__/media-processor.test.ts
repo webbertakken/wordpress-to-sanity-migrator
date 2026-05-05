@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as fs from 'fs'
 import path from 'path'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   extractMediaFromContent,
   findLocalPath,

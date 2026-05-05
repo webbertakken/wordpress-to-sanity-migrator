@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { blockContentToHtml, getTextFromBlockContent } from '../block-content-to-html'
 import type { MigrationBlockContent } from '../../types/migration'
+import { blockContentToHtml, getTextFromBlockContent } from '../block-content-to-html'
 
 describe('blockContentToHtml — empty / invalid inputs', () => {
   it('returns the empty string for undefined input', () => {

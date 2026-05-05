@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
+import type { MigrationBlockContent, MigrationTextBlock } from '../../types/migration'
+import { htmlToBlockContent } from '../html-to-portable-text'
 import { parseInlineHTML } from '../parse-inline-html'
 import { splitIntoParagraphs } from '../split-into-paragraphs'
-import { htmlToBlockContent } from '../html-to-portable-text'
-import type { MigrationBlockContent, MigrationTextBlock } from '../../types/migration'
 
 const asTextBlock = (block: MigrationBlockContent[number]): MigrationTextBlock => {
   if (block._type !== 'block') {

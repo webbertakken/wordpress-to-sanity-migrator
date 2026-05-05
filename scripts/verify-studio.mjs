@@ -7,10 +7,10 @@
  *   `schema/studio-compatibility/tsconfig.json`. Exits with the tsc status.
  */
 
+import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const studioTypesPath = path.join(repoRoot, 'input/sanity.types.ts')

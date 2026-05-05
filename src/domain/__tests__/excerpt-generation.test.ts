@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { SanityContentTransformer } from '../sanity-content-transformer'
 import type { WordPressPost } from '../../types/migration'
+import { SanityContentTransformer } from '../sanity-content-transformer'
 
 const createWordPressPost = (overrides: Partial<WordPressPost> = {}): WordPressPost => ({
   ID: 1,

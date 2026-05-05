@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { expandWordPressShortcodes } from '../wordpress-shortcodes'
-import { htmlToBlockContent } from '../html-to-portable-text'
 import type {
   MigrationAudioBlock,
   MigrationBlockContent,
@@ -8,6 +6,8 @@ import type {
   MigrationTextBlock,
   MigrationVideoBlock,
 } from '../../types/migration'
+import { htmlToBlockContent } from '../html-to-portable-text'
+import { expandWordPressShortcodes } from '../wordpress-shortcodes'
 
 const asImageBlock = (block: MigrationBlockContent[number]): MigrationImageBlock => {
   if (block._type !== 'image') {

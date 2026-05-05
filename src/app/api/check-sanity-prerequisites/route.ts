@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@sanity/client'
+import { NextResponse } from 'next/server'
 
 export interface PrerequisiteCheck {
   id: 'projectId' | 'datasetExists' | 'writeToken' | 'postSchema'

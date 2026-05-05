@@ -1,5 +1,5 @@
-import { parse } from 'node-html-parser'
 import * as fs from 'fs'
+import { parse } from 'node-html-parser'
 import * as path from 'path'
 import type { MediaReference } from '../types/migration'
 

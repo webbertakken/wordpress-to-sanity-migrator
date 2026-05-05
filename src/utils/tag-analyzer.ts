@@ -1,6 +1,6 @@
 import fs from 'fs'
-import path from 'path'
 import { parse } from 'node-html-parser'
+import path from 'path'
 import { MigrationRecord } from '@/types/migration'
 
 export interface TagAnalysis {

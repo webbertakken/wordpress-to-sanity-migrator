@@ -1,10 +1,10 @@
-import * as mysql2 from 'mysql2/promise'
 import * as fs from 'fs'
-import * as path from 'path'
 import { RowDataPacket } from 'mysql2'
+import * as mysql2 from 'mysql2/promise'
+import * as path from 'path'
+import { SanityContentTransformer } from '../../../domain/sanity-content-transformer'
 import type { WordPressPost, MigrationRecord, MigrationOptions } from '../../../types/migration'
 import { generateMediaStats } from '../../../utils/media-processor'
-import { SanityContentTransformer } from '../../../domain/sanity-content-transformer'
 
 // Load environment variables if needed
 // require('dotenv').config();

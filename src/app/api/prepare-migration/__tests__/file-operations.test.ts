@@ -27,8 +27,8 @@ vi.mock('fs/promises', async () => {
   }
 })
 
-import { readMigrationFile, getMigrationFilePreview, MIGRATION_FILE_PATH } from '../file-operations'
 import { MigrationFileError } from '../error-handling'
+import { readMigrationFile, getMigrationFilePreview, MIGRATION_FILE_PATH } from '../file-operations'
 
 describe('readMigrationFile', () => {
   it('parses the file when it exists and contains valid JSON', async () => {

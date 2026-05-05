@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { SanityContentTransformer } from '../sanity-content-transformer'
 import type { WordPressPost } from '../../types/migration'
 import * as htmlModule from '../../utils/html-to-portable-text'
+import { SanityContentTransformer } from '../sanity-content-transformer'
 
 function buildPost(overrides: Partial<WordPressPost> = {}): WordPressPost {
   return {

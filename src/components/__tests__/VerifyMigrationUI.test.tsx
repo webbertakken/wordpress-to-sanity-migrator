@@ -1,15 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { MigrationRecord } from '../../types/migration'
-
 // processContentForPreview is defensive: it rewrites local-path media URLs in
 // rendered HTML through /api/serve-media. The default blockContentToHtml
 // output already pre-rewrites those URLs so the callbacks never fire. To
 // exercise those branches we stub blockContentToHtml in some tests to return
 // raw <img>/<audio>/<video>/<source> tags with un-rewritten paths.
 import * as blockToHtmlModule from '../../utils/block-content-to-html'
-
 import { VerifyMigrationUI } from '../VerifyMigrationUI'
 
 function buildPostRecord(

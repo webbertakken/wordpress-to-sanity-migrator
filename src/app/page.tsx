@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { DockerManagerUI } from '../components/DockerManagerUI'
+import { ImportToSanityUI } from '../components/ImportToSanityUI'
+import { MigrationNavigation } from '../components/MigrationNavigation'
 import { PrepareMigrationUI } from '../components/PrepareMigrationUI'
 import { VerifyMigrationUI } from '../components/VerifyMigrationUI'
-import { ImportToSanityUI } from '../components/ImportToSanityUI'
-import { DockerManagerUI } from '../components/DockerManagerUI'
-import { MigrationNavigation } from '../components/MigrationNavigation'
 import { MIGRATION_STEPS } from '../constants/migration'
 import { MigrationStep } from '../types/migration'
 

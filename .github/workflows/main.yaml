@@ -60,7 +60,7 @@ jobs:
           yarn install --immutable
 
       - name: Format check
-        run: yarn prettier --check .
+        run: yarn format:check
 
       - name: Lint (oxlint)
         run: yarn lint

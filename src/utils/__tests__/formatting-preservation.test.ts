@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import type { MigrationBlockContent, MigrationTextBlock } from '../../types/migration'
 import { htmlToBlockContent } from '../html-to-portable-text'
 import { parseInlineHTML } from '../parse-inline-html'
-import type { MigrationBlockContent, MigrationTextBlock } from '../../types/migration'
 
 /**
  * Narrow a block-content element to a text block. Throws when the element

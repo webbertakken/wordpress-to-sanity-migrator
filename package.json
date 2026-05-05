@@ -4,27 +4,28 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node scripts/ensure-husky.mjs && next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "node scripts/lint.mjs",
-    "format": "prettier --write .",
+    "format": "oxfmt --write",
     "typecheck": "tsgo --noEmit",
     "verify-studio": "node scripts/verify-studio.mjs",
-    "test": "vitest",
+    "test": "node scripts/ensure-husky.mjs && vitest run",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "setup:hooks": "node scripts/ensure-husky.mjs",
+    "format:check": "oxfmt --check"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "prettier --write",
-      "oxlint --fix --quiet"
+    "*.@(ts|tsx|mts|js|jsx|mjs|cjs)": [
+      "oxlint --fix --quiet",
+      "oxfmt --write"
     ],
-    "*.{json,md,css,html,yml,yaml}": [
-      "prettier --write"
-    ]
+    "*.@(json|jsonc|json5|md|mdx|yaml|yml|css|scss|sass|html|toml)": "oxfmt --write",
+    ".github/workflows/*.@(yml|yaml)": "actionlint"
   },
   "dependencies": {
     "@sanity/client": "^7.22.0",
@@ -48,13 +49,14 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
     "@vitest/ui": "^4.1.5",
+    "eslint-plugin-unicorn": "^64.0.0",
     "husky": "^9.1.7",
     "jsdom": "^29.0.2",
     "lint-staged": "^16.4.0",
     "mysql2": "^3.22.2",
     "node-html-parser": "^7.1.0",
+    "oxfmt": "^0.48.0",
     "oxlint": "^1.61.0",
-    "prettier": "^3.8.3",
     "tailwindcss": "^4.2.4",
     "vitest": "^4.1.5"
   },

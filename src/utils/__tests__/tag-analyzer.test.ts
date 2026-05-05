@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { analyzeHtmlTags, generateTagReport, type TagAnalysis } from '../tag-analyzer'
 import type { MigrationRecord } from '../../types/migration'
+import { analyzeHtmlTags, generateTagReport, type TagAnalysis } from '../tag-analyzer'
 
 const existsSyncMock = vi.fn()
 const readFileSyncMock = vi.fn()
