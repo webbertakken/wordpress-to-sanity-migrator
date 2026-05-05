@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { htmlToBlockContent } from '../html-to-portable-text'
 import type { MigrationImageBlock, MigrationTextBlock } from '../../types/migration'
+import { htmlToBlockContent } from '../html-to-portable-text'
 
 /**
  * Regression tests for raw WordPress `post_content` that arrives without

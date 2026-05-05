@@ -1,5 +1,5 @@
-import { runMigrationPreparation } from './migration-service'
 import type { MigrationOptions } from '../../../types/migration'
+import { runMigrationPreparation } from './migration-service'
 
 export async function POST(request: Request) {
   // Parse request body for options

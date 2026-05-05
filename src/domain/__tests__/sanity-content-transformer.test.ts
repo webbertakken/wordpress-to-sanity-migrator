@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { SanityContentTransformer } from '../sanity-content-transformer'
 import type { WordPressPost } from '../../types/migration'
+import { SanityContentTransformer } from '../sanity-content-transformer'
 
 describe('SanityContentTransformer', () => {
   const mockWordPressPost: WordPressPost = {

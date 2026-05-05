@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { blockContentToHtml, getTextFromBlockContent } from '../block-content-to-html'
 import type { ExtendedBlockContent, MigrationBlockContent } from '../../types/migration'
+import { blockContentToHtml, getTextFromBlockContent } from '../block-content-to-html'
 import { createTestImageBlock, createTestTextBlock } from './test-helpers'
 
 // Note: htmlToBlockContent tests are integration tests that require real

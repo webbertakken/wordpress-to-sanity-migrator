@@ -19,6 +19,11 @@
  */
 
 import type {
+  BlockContent as StudioBlockContent,
+  Page as StudioPage,
+  Post as StudioPost,
+} from '../../input/sanity.types'
+import type {
   AudioBlock as CanonicalAudioBlock,
   BlockContent as CanonicalBlockContent,
   ImageBlock as CanonicalImageBlock,
@@ -27,12 +32,6 @@ import type {
   TextBlock as CanonicalTextBlock,
   VideoBlock as CanonicalVideoBlock,
 } from '../types'
-
-import type {
-  BlockContent as StudioBlockContent,
-  Page as StudioPage,
-  Post as StudioPost,
-} from '../../input/sanity.types'
 
 // Each declaration below is a compile-time assignability check. The function
 // types are never called; the assignment in the parameter position triggers

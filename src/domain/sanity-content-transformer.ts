@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import type {
   WordPressPost,
   SanityPostContent,
@@ -9,7 +10,6 @@ import type {
 } from '../types/migration'
 import { htmlToBlockContent } from '../utils/html-to-portable-text'
 import { extractMediaFromContent, mapMediaToLocalPaths } from '../utils/media-processor'
-import { nanoid } from 'nanoid'
 
 // Simple HTML stripping helper
 function stripHtml(html: string): string {

@@ -1,9 +1,5 @@
 // Lightweight HTML to Portable Text converter without JSDOM
 import { nanoid } from 'nanoid'
-import { extractMediaFromContent, mapMediaToLocalPaths } from './media-processor'
-import { parseInlineHTML, createBlockWithInlineContent } from './parse-inline-html'
-import { splitIntoParagraphs } from './split-into-paragraphs'
-import { expandWordPressShortcodes } from './wordpress-shortcodes'
 import type {
   MediaReference,
   MigrationBlockContent,
@@ -13,6 +9,10 @@ import type {
   MigrationDividerBlock,
   MigrationEmbedBlock,
 } from '../types/migration'
+import { extractMediaFromContent, mapMediaToLocalPaths } from './media-processor'
+import { parseInlineHTML, createBlockWithInlineContent } from './parse-inline-html'
+import { splitIntoParagraphs } from './split-into-paragraphs'
+import { expandWordPressShortcodes } from './wordpress-shortcodes'
 
 // BlockChild interface is part of MigrationTextBlock's children property
 

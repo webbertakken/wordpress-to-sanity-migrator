@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { blockContentToHtml } from '../block-content-to-html'
 import type { MigrationVideoBlock } from '../../types/migration'
+import { blockContentToHtml } from '../block-content-to-html'
 
 /**
  * Renderer behaviour for video blocks. Three shapes are exercised:

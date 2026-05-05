@@ -1,13 +1,13 @@
 // Test-optimized version of htmlToBlockContent that reuses JSDOM instance
 import { JSDOM } from 'jsdom'
 import { nanoid } from 'nanoid'
-import { extractMediaFromContent, mapMediaToLocalPaths } from '../media-processor'
 import type {
   MediaReference,
   MigrationBlockContent,
   MigrationAudioBlock,
   MigrationImageBlock,
 } from '../../types/migration'
+import { extractMediaFromContent, mapMediaToLocalPaths } from '../media-processor'
 
 // Create a single JSDOM instance to reuse across tests
 let cachedJSDOM: typeof JSDOM | null = null

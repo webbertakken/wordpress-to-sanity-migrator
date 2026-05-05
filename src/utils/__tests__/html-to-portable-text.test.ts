@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as fs from 'fs'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { htmlToBlockContent } from '../html-to-portable-text'
 
 vi.mock('fs', async () => {

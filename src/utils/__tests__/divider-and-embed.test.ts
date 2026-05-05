@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { htmlToBlockContent } from '../html-to-portable-text'
-import { blockContentToHtml } from '../block-content-to-html'
 import type {
   MigrationDividerBlock,
   MigrationEmbedBlock,
   MigrationVideoBlock,
 } from '../../types/migration'
+import { blockContentToHtml } from '../block-content-to-html'
+import { htmlToBlockContent } from '../html-to-portable-text'
 
 describe('htmlToBlockContent — divider and embed', () => {
   describe('<hr> -> divider block', () => {

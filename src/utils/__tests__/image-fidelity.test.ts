@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { htmlToBlockContent } from '../html-to-portable-text'
 import type { MigrationImageBlock } from '../../types/migration'
+import { htmlToBlockContent } from '../html-to-portable-text'
 
 /**
  * Image fidelity — the migrator should preserve the information WordPress

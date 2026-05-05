@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { EventEmitter } from 'events'
 import { promisify } from 'util'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const { execMock, spawnMock, createReadStreamMock } = vi.hoisted(() => {
   const fn = vi.fn()

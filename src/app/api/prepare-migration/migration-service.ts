@@ -1,7 +1,7 @@
-import { prepareMigration } from './prepare-migration'
-import { readMigrationFile, getMigrationFilePreview, MIGRATION_FILE_PATH } from './file-operations'
-import { handleMigrationError } from './error-handling'
 import type { MigrationOptions } from '../../../types/migration'
+import { handleMigrationError } from './error-handling'
+import { readMigrationFile, getMigrationFilePreview, MIGRATION_FILE_PATH } from './file-operations'
+import { prepareMigration } from './prepare-migration'
 
 export interface MigrationResult {
   success: boolean
