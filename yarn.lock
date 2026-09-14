@@ -1066,26 +1066,26 @@ __metadata:
   linkType: hard
 
 "@sanity/client@npm:^7.21.0, @sanity/client@npm:^7.22.0":
-  version: 7.22.0
-  resolution: "@sanity/client@npm:7.22.0"
+  version: 7.27.0
+  resolution: "@sanity/client@npm:7.27.0"
   dependencies:
-    "@sanity/eventsource": "npm:^5.0.2"
-    get-it: "npm:^8.7.2"
-    nanoid: "npm:^3.3.11"
-    rxjs: "npm:^7.0.0"
-  checksum: 10/5fdec606ac44bf4add562abf94ae5f0ec8330eed497dfc2906daebad7b9c61e5c92c15d18bea028ecd69477dea705bdda1584387ca3fe585d08af19890a57076
+    "@sanity/eventsource": "npm:^5.0.4"
+    get-it: "npm:^8.8.3"
+    nanoid: "npm:^3.3.17"
+    rxjs: "npm:^7.8.2"
+  checksum: 10/3df01881032b478f02ca9a8343316071ab2f1c4c73eb522883cb46d59fe304047d1a4fb939bceabab9701c7167b3c2cc8bc87559abf977309634f6728d60bb4e
   languageName: node
   linkType: hard
 
-"@sanity/eventsource@npm:^5.0.2":
-  version: 5.0.2
-  resolution: "@sanity/eventsource@npm:5.0.2"
+"@sanity/eventsource@npm:^5.0.4":
+  version: 5.0.4
+  resolution: "@sanity/eventsource@npm:5.0.4"
   dependencies:
     "@types/event-source-polyfill": "npm:1.0.5"
     "@types/eventsource": "npm:1.1.15"
     event-source-polyfill: "npm:1.0.31"
     eventsource: "npm:2.0.2"
-  checksum: 10/a877f6175f2134e3f12119ec11b4f919ca03b7bd01dd7e400c88704f8de8085bfbe09216f225fc54344bcacba2f230642a3ea4a5f08e861652d742b3a1c4fa60
+  checksum: 10/f2de26c02c455e50b0b7c1b560b830369cb713d72dfb11ee469551f5b3c3d95ca4e427908c7a88d0e5d95f46e3fdb7a6163b4dded11f71f1fec6d6dd5ea12cbe
   languageName: node
   linkType: hard
 
@@ -2466,15 +2466,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"get-it@npm:^8.7.2":
-  version: 8.7.2
-  resolution: "get-it@npm:8.7.2"
+"get-it@npm:^8.8.3":
+  version: 8.8.3
+  resolution: "get-it@npm:8.8.3"
   dependencies:
     decompress-response: "npm:^7.0.0"
     is-retry-allowed: "npm:^2.2.0"
     through2: "npm:^4.0.2"
     tunnel-agent: "npm:^0.6.0"
-  checksum: 10/1a68b9a02b54b2b482702a1a94daa4ec291622b7ff68e669e9d6798eb80ff7fb1d74bcca0ae969c8c8547a29fa4826c94d1fd6f81958c1d93024a10fe820fa33
+  checksum: 10/622d571da13f535edb0e984f4d4b6fc37d305915d9a8ce1cd55f27c7bcb18ff399013e72022b81a6388e8dba6a779bbe0eea91e8083e2d7e35cd0b290fe776d1
   languageName: node
   linkType: hard
 
@@ -3226,6 +3226,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoid@npm:^3.3.17":
+  version: 3.3.19
+  resolution: "nanoid@npm:3.3.19"
+  bin:
+    nanoid: bin/nanoid.cjs
+  checksum: 10/a330adb28dad63eccb0a0c95a2a61353e84b7e067061fff94167803d94be8eef0f7b75cf2da1bece06e8b7afb892abbe52cf0ec33298c817a083eedccd7656e4
+  languageName: node
+  linkType: hard
+
 "nanoid@npm:^5.1.9":
   version: 5.1.9
   resolution: "nanoid@npm:5.1.9"
@@ -3813,7 +3822,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:^7.0.0":
+"rxjs@npm:^7.8.2":
   version: 7.8.2
   resolution: "rxjs@npm:7.8.2"
   dependencies:
