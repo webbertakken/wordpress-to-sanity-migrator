@@ -1,30 +1,18 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { DockerManagerUI } from '../components/DockerManagerUI'
 import { ImportToSanityUI } from '../components/ImportToSanityUI'
 import { MigrationNavigation } from '../components/MigrationNavigation'
 import { PrepareMigrationUI } from '../components/PrepareMigrationUI'
 import { VerifyMigrationUI } from '../components/VerifyMigrationUI'
 import { MIGRATION_STEPS } from '../constants/migration'
+import { resetProgress, setStepCompletion, useCompletedSteps } from '../domain/migration-progress'
 import { MigrationStep } from '../types/migration'
 
 export default function Home() {
   const [step, setStep] = useState<number | null>(null)
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
-
-  // Load completed steps from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('completedMigrationSteps')
-    if (saved) {
-      setCompletedSteps(new Set(JSON.parse(saved)))
-    }
-  }, [])
-
-  // Save completed steps to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('completedMigrationSteps', JSON.stringify(Array.from(completedSteps)))
-  }, [completedSteps])
+  const completedSteps = useCompletedSteps()
 
   // Auto-detect step completion from live system state.
   // Re-runs on mount and whenever the window regains focus, so a step lights
@@ -56,25 +44,6 @@ export default function Home() {
       window.removeEventListener('focus', onFocus)
     }
   }, [])
-
-  const markStepCompleted = (stepIndex: number) => {
-    setCompletedSteps((prev) => new Set(prev).add(stepIndex))
-  }
-
-  const setStepCompletion = (stepIndex: number, completed: boolean) => {
-    setCompletedSteps((prev) => {
-      if (prev.has(stepIndex) === completed) return prev
-      const next = new Set(prev)
-      if (completed) next.add(stepIndex)
-      else next.delete(stepIndex)
-      return next
-    })
-  }
-
-  const resetProgress = () => {
-    setCompletedSteps(new Set())
-    localStorage.removeItem('completedMigrationSteps')
-  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
@@ -145,15 +114,15 @@ export default function Home() {
           </div>
         ) : step === 0 ? (
           <DockerManagerUI
-            onComplete={() => markStepCompleted(0)}
+            onComplete={() => setStepCompletion(0, true)}
             onIncomplete={() => setStepCompletion(0, false)}
           />
         ) : step === 1 ? (
-          <PrepareMigrationUI onComplete={() => markStepCompleted(1)} />
+          <PrepareMigrationUI onComplete={() => setStepCompletion(1, true)} />
         ) : step === 2 ? (
-          <VerifyMigrationUI onComplete={() => markStepCompleted(2)} />
+          <VerifyMigrationUI onComplete={() => setStepCompletion(2, true)} />
         ) : (
-          <ImportToSanityUI onComplete={() => markStepCompleted(3)} />
+          <ImportToSanityUI onComplete={() => setStepCompletion(3, true)} />
         )}
       </div>
     </div>

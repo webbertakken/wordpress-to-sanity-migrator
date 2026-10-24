@@ -9,7 +9,13 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "eslint/no-await-in-loop": "off",
-    "vitest/require-mock-type-parameters": "off"
+    "vitest/require-mock-type-parameters": "off",
+    "eslint/no-underscore-dangle": [
+      "error",
+      {
+        "allow": ["_id", "_type", "_key", "_ref", "_rev", "_weak", "_createdAt", "_updatedAt"]
+      }
+    ]
   },
   "env": {
     "browser": true,

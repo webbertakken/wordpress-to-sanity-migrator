@@ -34,8 +34,9 @@ export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComple
 
   // Auto-scroll to bottom when new progress updates arrive
   useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
+    const container = logContainerRef.current
+    if (container && progressUpdates.length > 0) {
+      container.scrollTop = container.scrollHeight
     }
   }, [progressUpdates])
 
@@ -265,6 +266,7 @@ export const PrepareMigrationUI: React.FC<PrepareMigrationUIProps> = ({ onComple
                       onClick={() => navigator.clipboard.writeText(media.url)}
                       className="p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
                       title="Copy URL"
+                      aria-label="Copy URL"
                     >
                       <svg
                         className="w-4 h-4"

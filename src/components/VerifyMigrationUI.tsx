@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   MigrationRecord,
   MediaReference,
@@ -141,7 +141,6 @@ interface VerifyMigrationUIProps {
 
 export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete }) => {
   const [records, setRecords] = useState<MigrationRecord[]>([])
-  const [filteredRecords, setFilteredRecords] = useState<MigrationRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const [openDetails, setOpenDetails] = useState<{ [key: number]: boolean }>({})
   const [openData, setOpenData] = useState<{ [key: number]: boolean }>({})
@@ -172,7 +171,6 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
         }
 
         setRecords(data.data)
-        setFilteredRecords(data.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load migration data')
         console.error('Error loading migration data:', err)
@@ -182,8 +180,8 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
     loadMigrationData()
   }, [])
 
-  // Filter and sort records whenever filters change
-  useEffect(() => {
+  // Records narrowed by the search and type filters, in the chosen sort order
+  const filteredRecords = useMemo(() => {
     let filtered = [...records]
 
     // Apply search filter
@@ -246,7 +244,7 @@ export const VerifyMigrationUI: React.FC<VerifyMigrationUIProps> = ({ onComplete
       }
     })
 
-    setFilteredRecords(filtered)
+    return filtered
   }, [records, searchTerm, contentTypeFilter, sortBy, sortOrder])
 
   if (error) {
