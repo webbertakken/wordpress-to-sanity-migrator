@@ -3014,11 +3014,11 @@ __metadata:
   linkType: hard
 
 "nanoid@npm:^5.1.9":
-  version: 5.1.9
-  resolution: "nanoid@npm:5.1.9"
+  version: 5.1.16
+  resolution: "nanoid@npm:5.1.16"
   bin:
     nanoid: bin/nanoid.js
-  checksum: 10/a8cc355ed2176165a0fb5e0dbbac0b72f05d9ac08af50bf652ace22252d7a1455ef307b54681e39baf609a4da84600cad843bf01d9bd1cc1440f6fd166e19589
+  checksum: 10/b1e702e2b7072e74ac2ae880907d0a291853a36617ec5c3d27d81ab04965ebc0d4d0f707cf9220928cf93d5370b1f561c930efee853dc9c1a3facaefdf1a42ee
   languageName: node
   linkType: hard
 
