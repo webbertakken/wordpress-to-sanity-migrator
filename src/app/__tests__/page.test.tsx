@@ -39,6 +39,9 @@ vi.mock('../../components/ImportToSanityUI', () => ({
 
 import Home from '../page'
 
+const navStep = (title: string) =>
+  screen.getAllByRole('button').find((b) => b.title?.includes(title))!
+
 beforeEach(() => {
   vi.restoreAllMocks()
   localStorage.clear()
@@ -114,11 +117,10 @@ describe('Home page', () => {
   it('persists completed steps across remounts via localStorage', async () => {
     localStorage.setItem('completedMigrationSteps', JSON.stringify([0, 2]))
     render(<Home />)
-    // The Docker step should appear green.
-    const navStepDocker = screen
-      .getAllByRole('button')
-      .find((b) => b.title?.includes('Docker container'))!
-    expect(navStepDocker.className).toMatch(/bg-green/)
+    // Container detection reports no container, so it unmarks the Docker step.
+    await waitFor(() => expect(navStep('Docker container').className).not.toMatch(/bg-green/))
+    // The Verify step is never auto-detected, so it stays green from storage.
+    expect(navStep('Visually inspect').className).toMatch(/bg-green/)
   })
 
   it('clears completed steps via the Reset button when confirmed (writes empty array)', async () => {
@@ -133,8 +135,6 @@ describe('Home page', () => {
     render(<Home />)
     await waitFor(() => expect(screen.getByTitle('Reset all progress')).toBeInTheDocument())
     await userEvent.click(screen.getByTitle('Reset all progress'))
-    // The component first calls localStorage.removeItem, then the useEffect
-    // re-syncs with an empty array.
     await waitFor(() => expect(localStorage.getItem('completedMigrationSteps')).toBe('[]'))
   })
 

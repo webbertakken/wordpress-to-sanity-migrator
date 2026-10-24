@@ -57,6 +57,23 @@ function extractOutput(res: StepInput | Error): ExecResult {
   }
 }
 
+/** Build a finished step record from its base, the command outcome and its success flag. */
+function buildStep(
+  base: { step: string; cmd: string },
+  res: StepInput | Error,
+  success: boolean,
+): ContainerCommandStep {
+  const { stdout, stderr } = extractOutput(res)
+  const info = (res as StepInput).info
+  return {
+    ...base,
+    stdout,
+    stderr,
+    success,
+    ...(typeof info === 'boolean' ? { info } : {}),
+  }
+}
+
 interface ErrorDetails {
   stack?: string
   stdout?: string
@@ -92,22 +109,6 @@ export async function executeContainerCommand(
     steps.push(stepData)
     onStep?.(stepData)
     return steps.length - 1
-  }
-
-  function buildStep(
-    base: { step: string; cmd: string },
-    res: StepInput | Error,
-    success: boolean,
-  ): ContainerCommandStep {
-    const { stdout, stderr } = extractOutput(res)
-    const info = (res as StepInput).info
-    return {
-      ...base,
-      stdout,
-      stderr,
-      success,
-      ...(typeof info === 'boolean' ? { info } : {}),
-    }
   }
 
   function updateStep(index: number, res: StepInput | Error, success: boolean): void {

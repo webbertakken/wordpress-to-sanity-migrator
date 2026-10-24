@@ -87,6 +87,33 @@ describe('ImportToSanityUI — initial loading', () => {
     expect(screen.getByRole('button', { name: 'Re-check' })).toBeInTheDocument()
   })
 
+  it('re-checks the prerequisites on request and shows the fresh outcome', async () => {
+    let prerequisiteChecks = 0
+    vi.spyOn(global, 'fetch').mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('check-sanity-prerequisites')) {
+        prerequisiteChecks += 1
+        const allOk = prerequisiteChecks > 1
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              checks: [{ id: 'projectId', label: 'Project ID set', ok: allOk }],
+              allOk,
+            }),
+            { status: 200 },
+          ),
+        )
+      }
+      return Promise.resolve(mockMigrationData([]))
+    })
+    render(<ImportToSanityUI />)
+    await waitFor(() => expect(screen.getByText(/Prerequisites/)).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole('button', { name: 'Re-check' }))
+
+    await waitFor(() => expect(screen.getByText(/All prerequisites met/)).toBeInTheDocument())
+    expect(prerequisiteChecks).toBe(2)
+  })
+
   it('renders a fetch failure on the prerequisites endpoint as a single failed check', async () => {
     vi.spyOn(global, 'fetch').mockImplementation((url) => {
       if (typeof url === 'string' && url.includes('check-sanity-prerequisites')) {
@@ -547,7 +574,7 @@ describe('ImportToSanityUI — post selection and import flow', () => {
               `data: ${originalStringify({
                 type: 'info',
                 message: 'with-details',
-                details: { __throwOnStringify: true },
+                details: { throwOnStringify: true },
               })}\n\n`,
             ),
           )
@@ -568,7 +595,7 @@ describe('ImportToSanityUI — post selection and import flow', () => {
       if (
         value &&
         typeof value === 'object' &&
-        (value as Record<string, unknown>).__throwOnStringify === true
+        (value as Record<string, unknown>).throwOnStringify === true
       ) {
         throw new Error('Converting circular structure to JSON')
       }

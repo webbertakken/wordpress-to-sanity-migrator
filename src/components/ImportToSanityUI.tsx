@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { MigrationRecord, MediaReference } from '../types/migration'
 import { getContentTitle } from '../types/migration'
 
@@ -49,6 +49,109 @@ function getMessageIcon(type: ImportProgress['type']): string {
   }
 }
 
+/** A list of test-import candidates with the one to preselect, or why loading failed. */
+type PostOptionsOutcome = { posts: PostOption[]; defaultPost?: PostOption } | { error: string }
+
+/** Ask the server which Sanity prerequisites are met; a failed request becomes a failed check. */
+async function requestPrerequisites(): Promise<PrerequisitesResponse> {
+  try {
+    const response = await fetch('/api/check-sanity-prerequisites')
+    return (await response.json()) as PrerequisitesResponse
+  } catch (error) {
+    console.error('Failed to check prerequisites:', error)
+    return {
+      checks: [
+        {
+          id: 'projectId',
+          label: 'Failed to reach prerequisite check endpoint',
+          ok: false,
+          detail: error instanceof Error ? error.message : String(error),
+        },
+      ],
+      allOk: false,
+    }
+  }
+}
+
+/** Load the migrated records and offer up to 20 with media as test-import candidates. */
+async function requestPostOptions(): Promise<PostOptionsOutcome> {
+  try {
+    const response = await fetch('/api/get-migration-data')
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const result = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load migration data')
+    }
+
+    if (!result.data || !Array.isArray(result.data)) {
+      throw new Error('Migration data is not an array')
+    }
+
+    const migrationData = result.data as MigrationRecord[]
+    console.log(`Loaded ${migrationData.length} migration records`)
+    console.log('First record structure:', migrationData[0])
+
+    // Debug: Check what each record looks like
+    migrationData.slice(0, 3).forEach((record, index) => {
+      console.log(`Record ${index}:`, {
+        hasMedia: !!record.transformed?.media,
+        hasTransformedMedia: !!record.transformed?.media,
+        mediaLength: record.transformed?.media?.length,
+        hasTransformed: !!record.transformed,
+        title: getContentTitle(record.transformed),
+        hasOriginal: !!record.original,
+        originalId: record.original?.ID,
+      })
+    })
+
+    const postsWithMedia = migrationData
+      .filter((record: MigrationRecord) => {
+        // Get media from transformed property
+        const media = record.transformed?.media
+        const hasMedia = media && Array.isArray(media) && media.length > 0
+        if (!hasMedia) {
+          console.log('Filtered out record:', getContentTitle(record.transformed), 'media:', media)
+        }
+        return hasMedia
+      })
+      .map((record: MigrationRecord) => {
+        // Filter above guarantees a non-empty media array on transformed.
+        const media = record.transformed.media as MediaReference[]
+        return {
+          id: record.original.ID,
+          title: getContentTitle(record.transformed),
+          mediaCount: media.length,
+          mediaTypes: [...new Set(media.map((m: MediaReference) => m.type))],
+        }
+      })
+      .slice(0, 20) // Increased to 20 for more options
+
+    console.log(`Found ${postsWithMedia.length} posts with media:`, postsWithMedia)
+
+    // Auto-select a post with both image and audio if available
+    const mixedMediaPost = postsWithMedia.find(
+      (post: PostOption) => post.mediaTypes.includes('image') && post.mediaTypes.includes('audio'),
+    )
+
+    if (mixedMediaPost) {
+      console.log(`Auto-selected post with mixed media: ${mixedMediaPost.title}`)
+      return { posts: postsWithMedia, defaultPost: mixedMediaPost }
+    }
+    const [firstPost] = postsWithMedia
+    if (firstPost) console.log(`Auto-selected first post: ${firstPost.title}`)
+    return { posts: postsWithMedia, defaultPost: firstPost }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Failed to load posts:', errorMessage)
+    return { error: errorMessage }
+  }
+}
+
 export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }) => {
   const [isImporting, setIsImporting] = useState(false)
   const [messages, setMessages] = useState<ImportProgress[]>([])
@@ -66,8 +169,9 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
   // imports. Scrolling is local to the log container, never the page.
   const logRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight
+    const log = logRef.current
+    if (log && messages.length > 0) {
+      log.scrollTop = log.scrollHeight
     }
   }, [messages])
 
@@ -83,123 +187,36 @@ export const ImportToSanityUI: React.FC<ImportToSanityUIProps> = ({ onComplete }
     return null
   })()
 
-  useEffect(() => {
-    loadAvailablePosts()
-    checkPrerequisites()
+  const applyPrerequisites = useCallback((result: PrerequisitesResponse) => {
+    setPrereqs(result)
+    setPrereqsLoading(false)
   }, [])
 
-  const checkPrerequisites = async () => {
-    try {
-      setPrereqsLoading(true)
-      const response = await fetch('/api/check-sanity-prerequisites')
-      const data = (await response.json()) as PrerequisitesResponse
-      setPrereqs(data)
-    } catch (error) {
-      console.error('Failed to check prerequisites:', error)
-      setPrereqs({
-        checks: [
-          {
-            id: 'projectId',
-            label: 'Failed to reach prerequisite check endpoint',
-            ok: false,
-            detail: error instanceof Error ? error.message : String(error),
-          },
-        ],
-        allOk: false,
-      })
-    } finally {
-      setPrereqsLoading(false)
+  const applyPostOptions = useCallback((outcome: PostOptionsOutcome) => {
+    if ('error' in outcome) {
+      setLoadError(outcome.error)
+    } else {
+      setAvailablePosts(outcome.posts)
+      if (outcome.defaultPost) setSelectedPostId(outcome.defaultPost.id.toString())
     }
+    setLoadingPosts(false)
+  }, [])
+
+  // Both loading flags start true, so the first request needs no reset.
+  useEffect(() => {
+    requestPostOptions().then(applyPostOptions)
+    requestPrerequisites().then(applyPrerequisites)
+  }, [applyPostOptions, applyPrerequisites])
+
+  const checkPrerequisites = () => {
+    setPrereqsLoading(true)
+    requestPrerequisites().then(applyPrerequisites)
   }
 
-  const loadAvailablePosts = async () => {
-    try {
-      setLoadingPosts(true)
-      setLoadError(null)
-
-      const response = await fetch('/api/get-migration-data')
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to load migration data')
-      }
-
-      if (!result.data || !Array.isArray(result.data)) {
-        throw new Error('Migration data is not an array')
-      }
-
-      const migrationData = result.data as MigrationRecord[]
-      console.log(`Loaded ${migrationData.length} migration records`)
-      console.log('First record structure:', migrationData[0])
-
-      // Debug: Check what each record looks like
-      migrationData.slice(0, 3).forEach((record, index) => {
-        console.log(`Record ${index}:`, {
-          hasMedia: !!record.transformed?.media,
-          hasTransformedMedia: !!record.transformed?.media,
-          mediaLength: record.transformed?.media?.length,
-          hasTransformed: !!record.transformed,
-          title: getContentTitle(record.transformed),
-          hasOriginal: !!record.original,
-          originalId: record.original?.ID,
-        })
-      })
-
-      const postsWithMedia = migrationData
-        .filter((record: MigrationRecord) => {
-          // Get media from transformed property
-          const media = record.transformed?.media
-          const hasMedia = media && Array.isArray(media) && media.length > 0
-          if (!hasMedia) {
-            console.log(
-              'Filtered out record:',
-              getContentTitle(record.transformed),
-              'media:',
-              media,
-            )
-          }
-          return hasMedia
-        })
-        .map((record: MigrationRecord) => {
-          // Filter above guarantees a non-empty media array on transformed.
-          const media = record.transformed.media as MediaReference[]
-          return {
-            id: record.original.ID,
-            title: getContentTitle(record.transformed),
-            mediaCount: media.length,
-            mediaTypes: [...new Set(media.map((m: MediaReference) => m.type))],
-          }
-        })
-        .slice(0, 20) // Increased to 20 for more options
-
-      console.log(`Found ${postsWithMedia.length} posts with media:`, postsWithMedia)
-      setAvailablePosts(postsWithMedia)
-
-      // Auto-select a post with both image and audio if available
-      const mixedMediaPost = postsWithMedia.find(
-        (post: PostOption) =>
-          post.mediaTypes.includes('image') && post.mediaTypes.includes('audio'),
-      )
-
-      if (mixedMediaPost) {
-        setSelectedPostId(mixedMediaPost.id.toString())
-        console.log(`Auto-selected post with mixed media: ${mixedMediaPost.title}`)
-      } else if (postsWithMedia.length > 0) {
-        setSelectedPostId(postsWithMedia[0].id.toString())
-        console.log(`Auto-selected first post: ${postsWithMedia[0].title}`)
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Failed to load posts:', errorMessage)
-      setLoadError(errorMessage)
-    } finally {
-      setLoadingPosts(false)
-    }
+  const loadAvailablePosts = () => {
+    setLoadingPosts(true)
+    setLoadError(null)
+    requestPostOptions().then(applyPostOptions)
   }
 
   const startImport = async () => {

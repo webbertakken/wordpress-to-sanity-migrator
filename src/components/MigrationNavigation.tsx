@@ -4,17 +4,19 @@ import React from 'react'
 import { MIGRATION_STEPS } from '../constants/migration'
 import { MigrationStep } from '../types/migration'
 
+const NO_COMPLETED_STEPS: ReadonlySet<number> = new Set()
+
 interface MigrationNavigationProps {
   currentStep: number | null
   onStepChange: (step: number | null) => void
-  completedSteps?: Set<number>
+  completedSteps?: ReadonlySet<number>
   onResetProgress?: () => void
 }
 
 export function MigrationNavigation({
   currentStep,
   onStepChange,
-  completedSteps = new Set(),
+  completedSteps = NO_COMPLETED_STEPS,
   onResetProgress,
 }: MigrationNavigationProps) {
   return (
