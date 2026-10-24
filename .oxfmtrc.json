@@ -20,6 +20,7 @@
     "**/build/**",
     "**/.next/**",
     "**/coverage/**",
-    "**/.yarn/**"
+    "**/.yarn/**",
+    ".agents/skills/**"
   ]
 }
