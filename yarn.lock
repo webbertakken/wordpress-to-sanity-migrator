@@ -2346,15 +2346,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"he@npm:1.2.0":
-  version: 1.2.0
-  resolution: "he@npm:1.2.0"
-  bin:
-    he: bin/he
-  checksum: 10/d09b2243da4e23f53336e8de3093e5c43d2c39f8d0d18817abfa32ce3e9355391b2edb4bb5edc376aea5d4b0b59d6a0482aab4c52bc02ef95751e4b818e847f1
-  languageName: node
-  linkType: hard
-
 "html-encoding-sniffer@npm:^7.0.0":
   version: 7.0.0
   resolution: "html-encoding-sniffer@npm:7.0.0"
@@ -3226,13 +3217,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-html-parser@npm:^7.1.0":
-  version: 7.1.0
-  resolution: "node-html-parser@npm:7.1.0"
+"node-html-parser@npm:^9.0.0":
+  version: 9.0.5
+  resolution: "node-html-parser@npm:9.0.5"
   dependencies:
     css-select: "npm:^5.1.0"
-    he: "npm:1.2.0"
-  checksum: 10/370569dd329e56bc46883aa6f7123dd67c2f428325ec71788c167c1d216e1d45832fd75e068ce9f08be2750f692178e74391ea0921ad11fea6b990d58006bf6c
+    entities: "npm:^8.0.0"
+  checksum: 10/1b35d67d63d902b244a1398e575c5dd00ef527775464883541407f64d1ce86599379f2037b9d643de06eb04a4a509c5cb776280a26e7601cecffbf76e80b361e
   languageName: node
   linkType: hard
 
@@ -4355,7 +4346,7 @@ __metadata:
     mysql2: "npm:^3.22.2"
     nanoid: "npm:^6.0.0"
     next: "npm:^16.2.4"
-    node-html-parser: "npm:^7.1.0"
+    node-html-parser: "npm:^9.0.0"
     oxfmt: "npm:^0.74.0"
     oxlint: "npm:^1.61.0"
     react: "npm:^19.2.5"
