@@ -138,6 +138,48 @@ const sampleRecord = (
   }
 }
 
+describe('POST /api/import-to-sanity — Sanity client configuration', () => {
+  it('loads without any Sanity configuration, as during a production build', async () => {
+    delete process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
+    delete process.env.SANITY_API_WRITE_TOKEN
+    createClientMock.mockImplementation(({ projectId }: { projectId: string }) => {
+      if (!projectId) throw new Error('Configuration must contain `projectId`')
+      return {}
+    })
+    vi.resetModules()
+
+    await expect(import('../route')).resolves.toHaveProperty('POST')
+  })
+
+  it('creates the client from the configuration present at request time', async () => {
+    process.env.NEXT_PUBLIC_SANITY_PROJECT_ID = 'request-time-project'
+    process.env.NEXT_PUBLIC_SANITY_DATASET = 'staging'
+    process.env.SANITY_API_WRITE_TOKEN = 'request-time-token'
+    fetchClientMock.mockRejectedValue(new Error('stop after the connection probe'))
+
+    await readSse(await POST(postRequest({ testRun: true })))
+
+    expect(createClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 'request-time-project',
+        dataset: 'staging',
+        token: 'request-time-token',
+      }),
+    )
+  })
+
+  it('falls back to the production dataset when none is configured', async () => {
+    delete process.env.NEXT_PUBLIC_SANITY_DATASET
+    fetchClientMock.mockRejectedValue(new Error('stop after the connection probe'))
+
+    await readSse(await POST(postRequest({ testRun: true })))
+
+    expect(createClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({ dataset: 'production' }),
+    )
+  })
+})
+
 describe('POST /api/import-to-sanity — configuration errors', () => {
   it('emits an error when the Sanity project ID is missing', async () => {
     process.env.NEXT_PUBLIC_SANITY_PROJECT_ID = ''

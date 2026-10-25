@@ -5,13 +5,21 @@ import path from 'path'
 import type { Post, Page, BlockContent } from '@/../schema/types'
 import { MigrationRecord, getContentTitle, MigrationBlockContent } from '@/types/migration'
 
-const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
-  token: process.env.SANITY_API_WRITE_TOKEN || '',
-  apiVersion: '2024-01-01',
-  useCdn: false,
-})
+type SanityWriteClient = ReturnType<typeof createClient>
+
+/**
+ * A write client for the configured Sanity project. Created per request, so
+ * loading this route (as `next build` does) needs no Sanity credentials.
+ */
+function createImportClient(projectId: string, token: string): SanityWriteClient {
+  return createClient({
+    projectId,
+    dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
+    token,
+    apiVersion: '2024-01-01',
+    useCdn: false,
+  })
+}
 
 interface ImportProgress {
   type: 'progress' | 'success' | 'error' | 'info'
@@ -23,6 +31,7 @@ interface ImportProgress {
 }
 
 async function uploadMedia(
+  client: SanityWriteClient,
   mediaPath: string,
   mediaType: 'image' | 'audio' | 'video',
   maxRetries: number = 3,
@@ -238,11 +247,14 @@ export async function POST(request: NextRequest) {
         send({ type: 'info', message: 'Starting Sanity import process...' })
 
         // Validate Sanity configuration
-        if (!process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || !process.env.SANITY_API_WRITE_TOKEN) {
+        const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
+        const token = process.env.SANITY_API_WRITE_TOKEN
+        if (!projectId || !token) {
           throw new Error(
             'Missing Sanity configuration. Please set NEXT_PUBLIC_SANITY_PROJECT_ID and SANITY_API_WRITE_TOKEN environment variables.',
           )
         }
+        const client = createImportClient(projectId, token)
 
         // Test Sanity connection
         send({ type: 'info', message: 'Testing Sanity connection...' })
@@ -359,6 +371,7 @@ export async function POST(request: NextRequest) {
                 } else {
                   // Production mode: actually upload
                   const assetId = await uploadMedia(
+                    client,
                     mediaRef.localPath,
                     mediaRef.type as 'image' | 'audio' | 'video',
                   )
