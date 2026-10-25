@@ -28,7 +28,7 @@
     ".github/workflows/*.@(yml|yaml)": "actionlint"
   },
   "dependencies": {
-    "@sanity/client": "^7.22.0",
+    "@sanity/client": "^8.0.0",
     "@sanity/types": "^5.22.0",
     "nanoid": "^5.1.9",
     "next": "^16.2.4",
