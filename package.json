@@ -55,7 +55,7 @@
     "lint-staged": "^17.0.0",
     "mysql2": "^3.22.2",
     "node-html-parser": "^9.0.0",
-    "oxfmt": "^0.74.0",
+    "oxfmt": "^0.75.0",
     "oxlint": "^1.61.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
